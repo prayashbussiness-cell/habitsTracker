@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Start Your Day</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Anton&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0C0C0C;--card:#151515;--el:#1D1C1A;--bd:#302E2B;--tx:#F5F1F4;--t2:#A9A4A8;--t3:#716D71;--ac:#CFA8D5;--ac2:#E3CBE6;--ac3:#B88FBE;--ok:#58C6A0;--ok2:#79D9B5;--wn:#D9B56D;--dn:#D97878;--tr:#302E2F;--fl:#B99BC2;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--tx);font:400 14px/1.45 Manrope,system-ui,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.app{display:flex;min-height:100vh}
+.side{width:224px;padding:24px 16px;border-right:1px solid var(--bd);background:var(--bg);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+.logo{font:400 30px/.95 Anton,Impact,sans-serif;color:var(--ac);letter-spacing:.02em;margin:0 8px 24px}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;color:var(--t2);font-weight:600;text-align:left;width:100%}
+.nav:hover{background:var(--card)}.nav.on{background:var(--ac);color:#1a131c}
+.me{margin-top:auto;display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:14px;background:var(--card)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--ac3);color:#1a131c;display:grid;place-items:center;font-weight:800}
+main{flex:1;min-width:0;padding:28px clamp(16px,3vw,40px) 40px;max-width:1280px}
+h1{font:400 clamp(36px,5vw,56px)/.95 Anton,Impact,sans-serif;color:var(--ac2);letter-spacing:.01em}
+h2{font-size:16px;font-weight:800}
+.sub{color:var(--t2);margin:8px 0 22px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1fr 1fr}.gm{grid-template-columns:1.4fr 1fr}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:20px;min-width:0}
+.hero{background:linear-gradient(135deg,#221d24,var(--card) 60%);display:flex;gap:24px;align-items:center;grid-column:span 2}
+.big{font-size:34px;font-weight:800;line-height:1.1}
+.mut{color:var(--t3);font-size:12px}.t2{color:var(--t2)}
+.row{display:flex;align-items:center;gap:12px}.sp{justify-content:space-between}
+.ring{--p:0;width:112px;height:112px;border-radius:50%;background:conic-gradient(var(--fl) calc(var(--p)*1%),var(--tr) 0);display:grid;place-items:center;flex:none;transition:.5s}
+.ring b{width:84px;height:84px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:24px}
+.bar{height:8px;border-radius:9px;background:var(--tr);overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--fl);animation:grow .7s ease-out;transition:width .5s}
+.bar.ok i{background:var(--ok)}
+@keyframes grow{from{width:0!important}}
+.task{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--el);margin-bottom:8px}
+.ck{width:22px;height:22px;border-radius:7px;border:2px solid var(--bd);display:grid;place-items:center;flex:none;transition:.15s;color:transparent}
+.ck.on{background:var(--ok);border-color:var(--ok);color:#06241b}
+.task.done .nm{text-decoration:line-through;color:var(--t3)}
+.tag{font-size:11px;padding:2px 9px;border-radius:99px;background:var(--tr);color:var(--t2)}
+.hi{color:var(--wn)}.lo{color:var(--t2)}.hh{color:var(--dn)}
+.ib{padding:6px;border-radius:9px;color:var(--t3)}.ib:hover{background:var(--tr);color:var(--tx)}
+.btn{background:var(--ac);color:#1a131c;font-weight:800;padding:11px 18px;border-radius:14px;min-height:44px;display:inline-flex;gap:8px;align-items:center;justify-content:center}
+.btn:hover{background:var(--ac2)}.btn.g{background:var(--tr);color:var(--tx)}
+input,select,textarea{background:var(--el);border:1px solid var(--bd);border-radius:12px;padding:11px 12px;width:100%;min-height:44px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+label{display:block;font-size:12px;color:var(--t2);margin:14px 0 6px;font-weight:600}
+.hab{display:flex;flex-direction:column;gap:6px}
+.ico{width:38px;height:38px;border-radius:12px;background:#2a222c;color:var(--ac);display:grid;place-items:center;flex:none}
+.hab.full{border-color:#2c5a49}
+.num{width:80px;min-height:38px;padding:6px 10px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:150px}
+.bars div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;font-size:11px;color:var(--t2)}
+.bars i{width:100%;max-width:34px;border-radius:8px 8px 4px 4px;background:var(--tr);animation:up .6s ease-out}
+.bars .now i{background:var(--ac)}
+@keyframes up{from{height:0!important}}
+.donut{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;flex:none}
+.donut b{width:88px;height:88px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:22px}
+.dots{display:flex;gap:8px}.dots div{flex:1;text-align:center;font-size:11px;color:var(--t3)}
+.dots span{display:grid;place-items:center;height:34px;border-radius:10px;margin-top:5px;background:var(--el);color:var(--ok2)}
+.hist{display:grid;grid-template-columns:70px 1fr 1fr 60px 80px;gap:8px;align-items:center;padding:12px;border-radius:12px;width:100%;text-align:left}
+.hist:hover,.hist.on{background:var(--el)}
+.st{font-size:11px;padding:2px 9px;border-radius:99px;text-align:center}
+.mod{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:20;animation:fd .15s}
+.mod .card{width:min(440px,100%);background:var(--el)}
+@keyframes fd{from{opacity:0}}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ac2);color:#1a131c;padding:10px 18px;border-radius:99px;font-weight:700;z-index:30;opacity:0;transition:.2s;pointer-events:none}
+#toast.show{opacity:1}
+.bot{display:none}
+.dsel{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dsel input{width:auto}
+@media(max-width:1024px){.side{width:72px;align-items:center;padding:20px 8px}.side span,.me div+div,.logo{display:none}.nav{justify-content:center;padding:12px}.me{padding:4px;border:0;background:none}.g4{grid-template-columns:1fr 1fr}.gm{grid-template-columns:1fr}}
+@media(max-width:700px){.side{display:none}main{padding-bottom:100px}.g4,.g2{grid-template-columns:1fr}.hero{grid-column:auto;flex-direction:column;align-items:flex-start}.hist{grid-template-columns:56px 1fr 1fr 52px}.hist .st{display:none}
+.bot{display:flex;position:fixed;bottom:0;left:0;right:0;background:#111e;backdrop-filter:blur(12px);border-top:1px solid var(--bd);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
+.bot button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--t3);font-size:11px;padding:6px;min-height:44px}.bot .on{color:var(--ac)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.au{min-height:100vh;display:grid;place-items:center;padding:20px}.au .card{width:min(400px,100%);background:var(--el)}.mlo{display:none}
+@media(max-width:700px){.mlo{display:inline-flex}}
+</style></head><body>
+<div id="auth"></div><div class="app"><nav class="side" id="side"></nav><main id="main"></main></div>
+<nav class="bot" id="bot"></nav><div id="toast"></div><div id="modal"></div>
+<script>
+const P={home:"M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z",tasks:"M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",plus:"M12 5v14M5 12h14",edit:"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",trash:"M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6",note:"M4 4h16v12H8l-4 4z",flame:"M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 3-6 1 1 1 2 2 2 0-3-1-5 1-8z",heart:"M20 8c0 6-8 12-8 12S4 14 4 8a4 4 0 0 1 8-1 4 4 0 0 1 8 1z",bolt:"M13 2L4 14h7l-1 8 9-12h-7z",book:"M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2M8 7h8",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",check:"M5 12l5 5L20 7",left:"M15 18l-6-6 6-6",right:"M9 6l6 6-6 6"};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`;
+const ICONS=['book','heart','bolt','flame','tasks'],CATS=['Work','Health & Fitness','Learning','Personal','Finance','Other'],UNITS=['hour','min','pages','reps','steps'];
+const TODAY=new Date().toLocaleDateString('sv');
+let S={user:null,auth:'login',err:'',tmp:null,page:'dash',date:TODAY,open:{},edit:null,form:null,cards:[],goals:[],catPerf:[],sum:null,hist:{},days:{}};
+const SM=()=>S.sum||{month:{},year:{months:[]},streak:{}};
+const greet=()=>{const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'};
+let TOK=null;try{TOK=localStorage.getItem('syd_token')}catch(e){}
+const API=location.protocol=='file:'?'http://127.0.0.1:8000':'';
+async function api(m,p,b){const r=await fetch(API+p,{method:m,headers:{'Content-Type':'application/json',...(TOK?{Authorization:'Bearer '+TOK}:{})},body:b?JSON.stringify(b):undefined});let j={};try{j=await r.json()}catch(e){}
+if(r.status==401&&S.user){S.user=null;render()}if(!r.ok)throw new Error(typeof j.detail=='string'?j.detail:Array.isArray(j.detail)?(j.detail[0].msg||'').replace('Value error, ',''):'Request failed');return j}
+window.addEventListener('unhandledrejection',e=>toast((e.reason&&e.reason.message)||'Something went wrong'));
+function day(d){return S.days[d]||(S.days[d]={tasks:[],h:{},notes:''})}
+const toDay=d=>({tasks:d.tasks.map(t=>({id:t.id,n:t.name,cat:t.category,pri:t.priority,done:t.done})),h:Object.fromEntries(Object.entries(d.progress).map(([k,v])=>[k,{a:+v.actual,note:v.note||'',skip:v.skipped}])),notes:d.note||''});
+const setHist=h=>{S.hist={};h.forEach(x=>S.hist[x.date]={td:x.tasks_done,n:x.tasks_total,hd:x.habits_done,hn:x.habits_total,sk:x.habits_skipped,tp:x.task_pct,eff:x.efficiency})};
+async function loadDay(){try{S.days[S.date]=toDay(await api('GET','/api/day?date='+S.date))}catch(e){toast(e.message)}render()}
+async function sync(){try{const[h,s]=await Promise.all([api('GET','/api/history?days=14'),api('GET','/api/summary')]);setHist(h);S.sum=s;S.catPerf=s.categories}catch(e){}render()}
+async function loadAll(){try{const[c,g,d,h,s]=await Promise.all([api('GET','/api/cards'),api('GET','/api/goals'),api('GET','/api/day?date='+S.date),api('GET','/api/history?days=14'),api('GET','/api/summary')]);
+S.cards=c.map(x=>({id:x.id,name:x.name,cat:x.category,target:+x.target,unit:x.unit,icon:x.icon,desc:x.description||''}));S.goals=g.map(x=>({id:x.id,name:x.name,p:x.progress}));S.days[S.date]=toDay(d);setHist(h);S.sum=s;S.catPerf=s.categories}catch(e){toast(e.message)}render()}
+async function boot(){if(!TOK)return;try{S.user=await api('GET','/api/me')}catch(e){TOK=null;try{localStorage.removeItem('syd_token')}catch(x){}return render()}await loadAll()}
+const putProg=id=>{const h=day(S.date).h[id];api('PUT','/api/progress',{card_id:id,date:S.date,actual:h.a,note:h.note||'',skipped:!!h.skip}).then(sync)};
+const hp=(c,d)=>{const a=(day(d).h[c.id]||{a:0}).a;return Math.min(100,Math.round(a/c.target*100))};
+function stats(d){if(!S.days[d]&&S.hist[d])return S.hist[d];const D=day(d),td=D.tasks.filter(t=>t.done).length,n=D.tasks.length,act=S.cards.filter(c=>!(D.h[c.id]||{}).skip),hn=act.length,sk=S.cards.length-hn,hd=act.filter(c=>hp(c,d)>=100).length;
+const tr=n?td/n:0,hr=hn?act.reduce((a,c)=>a+hp(c,d),0)/hn/100:0,cm=[];if(n)cm.push(tr);if(hn)cm.push(hr);
+return{td,n,hd,hn,sk,tp:Math.round(tr*100),eff:cm.length?Math.round(cm.reduce((a,b)=>a+b)/cm.length*100):0}}
+const lab=e=>e>=85?['Excellent','var(--ok)']:e>=70?['Good','var(--ac)']:e>=50?['Fair','var(--wn)']:['Low','var(--dn)'];
+const fd=(d,o)=>new Date(d+'T00:00').toLocaleDateString('en-US',o);
+const shift=(d,n)=>{const x=new Date(d+'T00:00');x.setDate(x.getDate()+n);return x.toLocaleDateString('sv')};
+const bar=(p,c='')=>`<div class="bar ${c}"><i style="width:${p}%"></i></div>`;
+const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)};
+const $=s=>document.querySelector(s);
+const NAV=[['dash','Dashboard','home'],['tasks','Daily Tasks','tasks'],['add','Add Card','plus']];
+
+function Header(){const u=S.user.name;return `<div class="row sp" style="align-items:flex-start"><h1>START<br>YOUR DAY</h1><button class="btn g mlo" data-a="logout">${ic('out')} Log out</button></div><p class="sub">${S.page=='dash'?greet()+', '+u:u} · ${fd(S.date,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}<br><span class="mut">Plan it. Track it. Complete it.</span></p>`}
+function DateSel(){return `<div class="dsel" style="margin-bottom:18px"><button class="btn g" data-a="d" data-v="-1" aria-label="Previous day">${ic('left')}</button><input type="date" value="${S.date}" data-a="pick"><button class="btn g" data-a="d" data-v="1" aria-label="Next day">${ic('right')}</button>${S.date!==TODAY?'<button class="btn g" data-a="pick" data-v="'+TODAY+'">Today</button>':''}</div>`}
+function Task(t){return `<div class="task ${t.done?'done':''}"><button class="ck ${t.done?'on':''}" data-a="tt" data-v="${t.id}" aria-label="Toggle ${t.n}">${ic('check')}</button><div style="flex:1;min-width:0"><div class="nm">${t.n}</div><div class="mut">${t.done?'Completed':'Pending'}</div></div><span class="tag">${t.cat}</span><span class="tag ${t.pri=='high'?'hh':t.pri=='med'?'hi':'lo'}">${t.pri}</span><button class="ib" data-a="dt" data-v="${t.id}" aria-label="Delete task">${ic('trash')}</button></div>`}
+function Habit(c){const D=day(S.date),h=D.h[c.id]||{a:0,note:''},p=hp(c,S.date),op=S.open[c.id]||h.note,sk=h.skip;
+return `<div class="card hab ${p>=100&&!sk?'full':''}" style="${sk?'opacity:.65':''}"><div class="row"><div class="ico">${ic(c.icon)}</div><div style="flex:1"><h2>${c.name}</h2><span class="mut">${c.cat}</span></div><button class="ib" data-a="ec" data-v="${c.id}" aria-label="Edit">${ic('edit')}</button><button class="ib" data-a="dc" data-v="${c.id}" aria-label="Delete">${ic('trash')}</button></div>
+<div class="mut" style="margin-top:6px">Target</div><b>${c.target} ${c.unit}</b>
+${sk?`<span class="tag" style="align-self:flex-start;margin:8px 0">Skipped · not counted today</span>`:`<div class="row"><div><div class="mut">Today's progress</div><input class="num" type="number" min="0" step="0.25" value="${h.a}" data-a="act" data-v="${c.id}"></div><span class="t2">${c.unit}</span></div>${bar(p,p>=100?'ok':'')}<div class="row sp"><b>${p}%</b><span class="mut">${p>=100?(h.a>c.target?'Exceeded target':'Completed'):p+'% completed'}</span></div>`}
+${op?`<textarea rows="2" placeholder="Add a note about today's progress or issue..." data-a="note" data-v="${c.id}">${h.note||''}</textarea>`:''}
+<div class="row sp">${op?'<span></span>':`<button class="mut" data-a="no" data-v="${c.id}" style="display:flex;gap:6px;align-items:center;min-height:36px">${ic('note')} Add note</button>`}<button class="tag" data-a="sk" data-v="${c.id}" style="min-height:32px;padding:4px 12px">${sk?'Undo skip':'Skip today'}</button></div></div>`}
+function Ring(p,sz){return `<div class="ring" style="--p:${p}"><b>${p}%</b></div>`}
+function Overview(){const s=stats(S.date),h=s.hd,gl=S.goals.filter(g=>g.p>=75).length;
+return `<div class="card hero">${Ring(s.eff)}<div style="flex:1;width:100%"><div class="mut">Daily efficiency</div><div class="big">${s.td} / ${s.n} <span class="t2" style="font-size:15px">tasks done</span></div>${bar(s.tp)}<div class="mut">Average of task completion and habit progress</div></div></div>
+<div class="card"><div class="mut">Habits</div><div class="big">${h} / ${s.hn}</div><div class="mut">completed today${s.sk?' · '+s.sk+' skipped':''}</div>${bar(s.hn?h/s.hn*100:0,'ok')}<div class="mut">Goals ${gl} / ${S.goals.length}</div></div>
+<div class="card"><div class="mut">Current streak</div><div class="big row" style="color:var(--wn)">${ic('flame')} ${SM().streak.current||0} days</div><div class="mut">Best ${SM().streak.best||0} days</div>${Streak()}</div>`}
+function Streak(){const ds=[...Array(7)].map((_,i)=>shift(TODAY,i-6));return `<div class="dots" style="margin-top:10px">${ds.map(d=>`<div>${fd(d,{weekday:'narrow'})}<span>${stats(d).eff>=50?ic('check'):''}</span></div>`).join('')}</div>`}
+function Weekly(){const w=[],mon=shift(TODAY,-6);for(let i=0;i<7;i++){const d=shift(mon,i);w.push([fd(d,{weekday:'short'}),stats(d).eff,d])}
+return `<div class="card"><h2>Weekly efficiency</h2><div class="bars" style="margin-top:14px">${w.map(x=>`<div class="${x[2]==S.date?'now':''}"><span>${x[1]}%</span><i style="height:${x[1]*1.1}px"></i><span>${x[0]}</span></div>`).join('')}</div></div>`}
+function Monthly(){const m=SM().month;return `<div class="card"><h2>Monthly performance</h2><div class="row" style="margin-top:14px"><div class="donut" style="background:conic-gradient(var(--ac) ${m.avg||0}%,var(--tr) 0)"><b>${m.avg||0}%</b></div><div style="flex:1"><div class="mut">Tasks</div><b>${m.tasks_done||0} / ${m.tasks_total||0}</b><div class="mut" style="margin-top:6px">Habits completed</div><b>${m.habits_pct||0}%</b><div class="mut" style="margin-top:6px">Goals achieved</div><b>${m.goals_pct||0}%</b></div></div></div>`}
+function Yearly(){const y=SM().year,m=y.months||[];return `<div class="card"><h2>Yearly overview</h2><div class="bars" style="height:90px;margin:12px 0">${m.map(v=>`<div><i style="height:${v*.8}px;${v?'':'opacity:.3'}"></i></div>`).join('')}</div><div class="grid g2" style="gap:8px"><span><span class="mut">Avg productivity</span><br><b>${y.avg||0}%</b></span><span><span class="mut">Tasks</span><br><b>${(y.tasks||0).toLocaleString()}</b></span><span><span class="mut">Habits</span><br><b>${(y.habits||0).toLocaleString()}</b></span><span><span class="mut">Goals</span><br><b>${y.goals_pct||0}%</b></span><span><span class="mut">Best month</span><br><b>${y.best_month||'-'}</b></span><span><span class="mut">Best streak</span><br><b>${SM().streak.best||0} days</b></span></div></div>`}
+function Goals(){return `<div class="card"><div class="row sp"><h2>Goals</h2><button class="tag" data-a="ag" style="min-height:30px;padding:4px 12px">+ Add goal</button></div>${S.goals.map(g=>`<div style="margin-top:12px" class="row sp"><button data-a="eg" data-v="${g.id}" style="text-align:left;flex:1">${g.name}</button><b>${g.p}%</b><button class="ib" data-a="dg" data-v="${g.id}" aria-label="Delete goal">${ic('trash')}</button></div>${bar(g.p)}`).join('')||'<p class="mut" style="margin-top:10px">No goals yet. Add one to track it here.</p>'}</div>`}
+function Cats(){return `<div class="card"><h2>Category performance</h2>${S.catPerf.map(g=>`<div style="margin-top:12px" class="row sp"><span>${g[0]}</span><b>${g[1]}%</b></div>${bar(g[1],g[1]>=80?'ok':'')}`).join('')||'<p class="mut" style="margin-top:10px">Complete tasks and habits to see this.</p>'}</div>`}
+function Dash(){const D=day(S.date);
+return `${Header()}${DateSel()}<div class="grid g4" style="margin-bottom:16px">${Overview()}</div>
+<div class="grid gm"><div class="card"><div class="row sp"><h2>Today's tasks</h2><span class="mut">${stats(S.date).td} / ${D.tasks.length}</span></div><div style="margin-top:12px">${D.tasks.slice(0,5).map(Task).join('')}<button class="btn g" data-a="go" data-v="tasks" style="width:100%">View all tasks</button></div></div>${Weekly()}</div>
+<h2 style="margin:24px 0 12px">Daily habits</h2><div class="grid g4" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${S.cards.map(Habit).join('')||'<p class="t2">No cards yet. Add one to start tracking.</p>'}</div>
+<div class="grid g2" style="margin-top:16px">${Monthly()}${Yearly()}</div><div class="grid g2" style="margin-top:16px">${Goals()}${Cats()}</div>`}
+function Tasks(){const D=day(S.date),s=stats(S.date),days=[...Array(7)].map((_,i)=>shift(TODAY,-i));
+return `${Header()}${DateSel()}<div class="card" style="margin-bottom:16px"><div class="row sp"><div><div class="mut">Overall progress</div><div class="big">${s.tp}%</div><div class="mut">${s.td} / ${s.n} completed · habits ${s.hd} / ${s.hn}${s.sk?' ('+s.sk+' skipped)':''} · efficiency ${s.eff}%</div></div><button class="btn" data-a="mt">${ic('plus')} Add task</button></div>${bar(s.tp)}<textarea rows="2" style="margin-top:10px" placeholder="Add a note about your day..." data-a="dnote">${D.notes||''}</textarea></div>
+<div class="grid gm"><div>${D.tasks.map(Task).join('')||'<div class="card t2">No tasks for this day. Add one to get started.</div>'}</div>
+<div class="card"><h2>History</h2><div style="margin-top:10px">${days.map(d=>{const t=stats(d),l=lab(t.eff);return `<button class="hist ${d==S.date?'on':''}" data-a="pick" data-v="${d}"><b>${fd(d,{month:'short',day:'numeric'})}</b><span>${t.td}/${t.n} tasks</span><span>${t.hd}/${t.hn} habits</span><b>${t.eff}%</b><span class="st" style="background:${l[1]}22;color:${l[1]}">${l[0]}</span></button>`}).join('')}</div></div></div>${HabSec()}`}
+function HabSec(){return `<div class="row sp" style="margin:24px 0 12px;flex-wrap:wrap"><h2>Daily habits</h2><span class="mut">Set up once on Add Card. Skipped habits don't count toward efficiency.</span></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${S.cards.map(Habit).join('')||'<div class="card t2">No habit cards yet. Create one on the Add Card page.</div>'}</div>`}
+function Add(){const f=S.form||(S.form={name:'',cat:'Learning',type:'Time',target:1,unit:'hour',desc:'',icon:'book'});
+return `<h1>${S.edit?'EDIT<br>CARD':'ADD NEW<br>CARD'}</h1><p class="sub">Create a habit card with a daily target.</p><div class="grid g2"><div class="card">
+<label>Card name</label><input data-f="name" value="${f.name}" placeholder="Preparing Python">
+<label>Category</label><select data-f="cat">${CATS.map(c=>`<option ${c==f.cat?'selected':''}>${c}</option>`).join('')}</select>
+<label>Goal type</label><select data-f="type">${['Time','Quantity','Custom'].map(c=>`<option ${c==f.type?'selected':''}>${c}</option>`).join('')}</select>
+<div class="row"><div style="flex:1"><label>Target</label><input type="number" min="0.25" step="0.25" data-f="target" value="${f.target}"></div><div style="flex:1"><label>Unit</label><input list="u" data-f="unit" value="${f.unit}"><datalist id="u">${UNITS.map(u=>`<option>${u}`).join('')}</datalist></div></div>
+<label>Description (optional)</label><textarea rows="2" data-f="desc">${f.desc}</textarea>
+<label>Icon</label><div class="row">${ICONS.map(n=>`<button class="ico" data-a="icon" data-v="${n}" style="${n==f.icon?'background:var(--ac);color:#1a131c':''}" aria-label="${n}">${ic(n)}</button>`).join('')}</div>
+<button class="btn" style="margin-top:20px;width:100%" data-a="save">${S.edit?'Save changes':'Create card'}</button></div>
+<div><div class="mut" style="margin-bottom:8px">Preview</div><div id="pv"></div></div></div>`}
+function Preview(){const f=S.form,t=+f.target||1;return `<div class="card hab"><div class="row"><div class="ico">${ic(f.icon)}</div><div><h2>${f.name||'Untitled card'}</h2><span class="mut">${f.cat}</span></div></div><div class="mut">Target</div><b>${t} ${f.unit}</b><div class="mut">Today's progress</div><b>0 ${f.unit}</b>${bar(0)}<b>0%</b>${f.desc?`<div class="mut">${f.desc}</div>`:''}</div>`}
+function modal(){return `<div class="mod" data-a="close"><div class="card" onclick="event.stopPropagation()"><h2>Add task</h2><label>Task name</label><input id="tn" autofocus><label>Category</label><select id="tc">${CATS.map(c=>`<option>${c}</option>`).join('')}</select><label>Priority</label><select id="tp"><option>high</option><option selected>med</option><option>low</option></select><label>Description (optional)</label><textarea id="td" rows="2"></textarea><div class="row" style="margin-top:18px"><button class="btn g" data-a="close" style="flex:1">Cancel</button><button class="btn" data-a="ct" style="flex:1">Add task</button></div></div></div>`}
+function Auth(){const t=S.tmp||{n:'',p:''},su=S.auth=='signup';
+return `<div class="au"><div class="card"><div class="logo" style="margin:0 0 6px">START YOUR DAY</div><p class="mut" style="margin-bottom:16px">Plan it. Track it. Complete it.</p><div class="row"><button class="btn ${su?'g':''}" style="flex:1" data-a="au" data-v="login">Log in</button><button class="btn ${su?'':'g'}" style="flex:1" data-a="au" data-v="signup">Sign up</button></div>
+<label>Name</label><input id="an" value="${t.n}" autocomplete="name" placeholder="Prayash"><label>Phone number</label><input id="ap" type="tel" value="${t.p}" autocomplete="tel" placeholder="7539863102" inputmode="numeric" maxlength="14">
+${S.err?`<p style="color:var(--dn);margin-top:12px">${S.err}</p>`:''}<button class="btn" style="width:100%;margin-top:18px" data-a="${su?'signup':'login'}">${su?'Create account':'Log in'}</button></div></div>`}
+async function doAuth(a){const n=($('#an').value||'').replace(/[<>"&]/g,'').trim();S.tmp={n,p:$('#ap').value};
+if(n.length<2)return S.err='Enter your name.',render();
+try{const r=await api('POST','/api/auth/'+a,{name:n,phone:$('#ap').value});TOK=r.token;try{localStorage.setItem('syd_token',TOK)}catch(e){}S.user=r.user;S.err='';S.tmp=null;S.page='dash';S.date=TODAY;S.days={};render();await loadAll();toast('Welcome, '+S.user.name)}catch(e){S.err=e.message;render()}}
+document.addEventListener('keydown',e=>{if(e.key=='Enter'&&!S.user&&e.target.tagName=='INPUT'){doAuth(S.auth);render()}});
+function render(){if(!S.user){$('.app').style.display='none';$('#bot').style.display='none';$('#auth').innerHTML=Auth();return}
+$('#auth').innerHTML='';$('.app').style.display='';$('#bot').style.display='';const m=$('#main');m.innerHTML=S.page=='dash'?Dash():S.page=='tasks'?Tasks():Add();if(S.page=='add')pv();
+$('#side').innerHTML=`<div class="logo">START<br>YOUR<br>DAY</div>`+NAV.map(n=>`<button class="nav ${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}<span>${n[1]}</span></button>`).join('')+`<div class="me"><div class="av">${S.user.name[0].toUpperCase()}</div><div style="flex:1;min-width:0"><b>${S.user.name}</b></div><button class="ib" data-a="logout" aria-label="Log out">${ic('out')}</button></div>`;
+$('#bot').innerHTML=NAV.map(n=>`<button class="${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}${n[1]}</button>`).join('')}
+const pv=()=>{const e=$('#pv');if(e)e.innerHTML=Preview()};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,D=day(S.date);
+if(b.tagName=='INPUT')return;
+if(a=='au'){S.auth=v;S.err=''}else if(a=='login'||a=='signup')doAuth(a);
+else if(a=='logout'){S.user=null;S.auth='login';TOK=null;S.days={};S.cards=[];S.goals=[];S.sum=null;try{localStorage.removeItem('syd_token')}catch(e){}}
+else if(a=='sk'){const h=D.h[v]=D.h[v]||{a:0,note:''};h.skip=!h.skip;putProg(v);toast(h.skip?'Habit skipped for today':'Skip removed')}
+else if(a=='ag'){const nm=prompt('Goal name');if(nm&&nm.trim())api('POST','/api/goals',{name:nm.trim(),progress:0}).then(loadAll)}
+else if(a=='eg'){const g=S.goals.find(g=>g.id==v),p=prompt('Progress % for '+g.name,g.p);if(p!==null)api('PUT','/api/goals/'+v,{progress:Math.min(100,Math.max(0,Math.round(+p||0)))}).then(loadAll)}
+else if(a=='dg'){api('DELETE','/api/goals/'+v).then(loadAll)}
+else if(a=='go'){S.page=v;if(v!='add'){S.edit=null;S.form=null}window.scrollTo(0,0)}
+else if(a=='d'){S.date=shift(S.date,+v);loadDay()}
+else if(a=='pick'){S.date=v;loadDay()}
+else if(a=='tt'){const t=D.tasks.find(t=>t.id==v);t.done=!t.done;api('PATCH','/api/tasks/'+v,{done:t.done}).then(sync)}
+else if(a=='dt'){D.tasks=D.tasks.filter(t=>t.id!=v);api('DELETE','/api/tasks/'+v).then(sync);toast('Task deleted')}
+else if(a=='no'){S.open[v]=1}
+else if(a=='mt'){$('#modal').innerHTML=modal();return}
+else if(a=='close'){$('#modal').innerHTML='';return}
+else if(a=='ct'){const n=$('#tn').value.trim();if(!n)return toast('Enter a task name');const cat=$('#tc').value,pri=$('#tp').value;api('POST','/api/tasks',{date:S.date,name:n,category:cat,priority:pri,description:$('#td').value}).then(r=>{D.tasks.push({id:r.id,n,cat,pri,done:false});render();sync()});$('#modal').innerHTML='';toast('Task added')}
+else if(a=='dc'){api('DELETE','/api/cards/'+v).then(loadAll);toast('Card deleted')}
+else if(a=='ec'){const c=S.cards.find(c=>c.id==v);S.edit=c.id;S.form={name:c.name,cat:c.cat,type:'Time',target:c.target,unit:c.unit,desc:c.desc,icon:c.icon};S.page='add'}
+else if(a=='icon'){S.form.icon=v}
+else if(a=='save'){const f=S.form;if(!f.name.trim())return toast('Name your card');const o={name:f.name.trim(),cat:f.cat,target:+f.target||1,unit:f.unit||'unit',icon:f.icon,desc:f.desc};
+api(S.edit?'PUT':'POST','/api/cards'+(S.edit?'/'+S.edit:''),{name:o.name,category:o.cat,target:o.target,unit:o.unit,icon:o.icon,description:o.desc}).then(loadAll);toast(S.edit?'Changes saved':'Card created');S.edit=null;S.form=null;S.page='dash'}
+render()});
+document.addEventListener('change',e=>{const t=e.target,a=t.dataset.a,v=t.dataset.v;
+if(a=='pick'){S.date=t.value||TODAY;loadDay()}
+else if(a=='act'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].a=Math.max(0,+t.value||0);putProg(v);render()}
+else if(a=='dnote'){day(S.date).notes=t.value;api('PUT','/api/notes',{date:S.date,note:t.value});toast('Note saved')}
+else if(a=='note'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].note=t.value;putProg(v);toast('Note saved')}});
+document.addEventListener('input',e=>{const k=e.target.dataset.f;if(!k)return;S.form[k]=e.target.value;if(k=='cat'||k=='type')return pv();pv()});
+render();boot();
+</script></body></html>
