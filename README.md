@@ -45,3 +45,10 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - Login is name + phone with no OTP or password, as requested. Anyone who knows both can log in. Add Supabase Auth or SMS OTP before real use.
 - Tokens do not expire yet.
 - Do not commit `.env` (already in `.gitignore`).
+
+## Stay logged in / reliability (v2)
+- The login token is kept in the browser until you press **Log out**. Refreshing the page, a slow server, a database error or a lost connection never logs you out; only a genuinely invalid token (HTTP 401) does.
+- Every refresh (and returning to the tab) reloads the latest tasks, habits and stats from Supabase.
+- Backend uses one Supabase client per thread and retries failed calls on a fresh client (fixes `[Errno 11] Resource temporarily unavailable`).
+- Statistics recalculation is best-effort, so a saved task is never reported as failed because of it.
+- Set `APP_SECRET` (or keep `SUPABASE_KEY` unchanged) on Render so existing login tokens stay valid between deploys.

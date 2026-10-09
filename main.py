@@ -2,7 +2,7 @@
 
 Run:  pip install -r requirements.txt && uvicorn main:app --reload   ->  http://127.0.0.1:8000
 """
-import calendar, hashlib, hmac, logging, os, re
+import calendar, hashlib, hmac, logging, os, re, threading, time
 from datetime import date, timedelta
 from typing import Optional
 
@@ -30,11 +30,73 @@ if not URL.startswith("http"):
     URL = "https://" + URL
 # APP_SECRET is optional: if you do not set it, a secret is derived from SUPABASE_KEY (never exposed to the browser).
 SECRET = (os.getenv("APP_SECRET") or "").strip() or hashlib.sha256(("start-your-day:" + KEY).encode()).hexdigest()
-sb: Client = create_client(URL, KEY)
+
+
+# ---------- Supabase access (thread-safe, auto-retrying) ----------
+# Why: FastAPI runs every sync endpoint in a thread pool. Sharing ONE supabase/httpx client between those
+# threads (the browser fires several requests at once) causes "[Errno 11] Resource temporarily unavailable".
+# Fix: one client per thread, and a failed call is retried on a brand-new client before we give up.
+try:
+    from postgrest.exceptions import APIError  # real SQL/permission errors: never retry these
+except Exception:  # noqa: BLE001
+    class APIError(Exception):  # type: ignore[no-redef]
+        pass
+
+_local = threading.local()
+
+
+def _client() -> Client:
+    if getattr(_local, "c", None) is None:
+        _local.c = create_client(URL, KEY)
+    return _local.c
+
+
+def _reset_client() -> None:
+    _local.c = None
+
+
+class Q:
+    """Records a query chain (sb.table(..).select(..).eq(..)) and replays it on execute(), so a retry can
+    rebuild the whole query on a fresh client instead of re-using a broken connection."""
+
+    def __init__(self, ops=()):
+        self._ops = tuple(ops)
+
+    def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        return lambda *a, **k: Q(self._ops + ((name, a, k),))
+
+    def execute(self, attempts: int = 4):
+        last = None
+        for i in range(attempts):
+            try:
+                obj = _client()
+                for name, a, k in self._ops:
+                    obj = getattr(obj, name)(*a, **k)
+                return obj.execute()
+            except APIError:
+                raise
+            except Exception as exc:  # noqa: BLE001  (network / socket / pool errors)
+                last = exc
+                log.warning("Supabase call failed (try %d/%d): %s", i + 1, attempts, exc)
+                _reset_client()
+                time.sleep(0.25 * (i + 1))
+        raise last  # type: ignore[misc]
+
+
+sb = Q()
 
 CATS = ["Work", "Health & Fitness", "Learning", "Personal", "Finance", "Other"]
 app = FastAPI(title="Start Your Day API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def no_cache(request, call_next):
+    resp = await call_next(request)
+    resp.headers["Cache-Control"] = "no-store" if request.url.path.startswith("/api") else "no-cache"
+    return resp
 
 
 # ---------- helpers ----------
@@ -43,7 +105,7 @@ def run(query):
         return query.execute().data
     except Exception as exc:  # noqa: BLE001
         log.error("Supabase error: %s", exc)
-        raise HTTPException(502, f"Database error: {exc}") from exc
+        raise HTTPException(502, "Database is busy, please try again in a moment.") from exc
 
 
 def norm_phone(p: str) -> str:
@@ -102,10 +164,15 @@ def history(uid: str, start: date, end: date) -> list:
 
 
 def recompute(uid: str, d) -> None:
-    d = date.fromisoformat(str(d))
-    row = history(uid, d, d)[0]
-    row.pop("date")
-    run(sb.table("daily_statistics").upsert({"user_id": uid, "stat_date": d.isoformat(), **row}, on_conflict="user_id,stat_date"))
+    """Refresh the stored daily statistics. Best effort: the task/habit change is already saved, so a
+    hiccup here must not turn a successful save into an error."""
+    try:
+        d = date.fromisoformat(str(d))
+        row = history(uid, d, d)[0]
+        row.pop("date")
+        run(sb.table("daily_statistics").upsert({"user_id": uid, "stat_date": d.isoformat(), **row}, on_conflict="user_id,stat_date"))
+    except Exception as exc:  # noqa: BLE001
+        log.error("recompute failed for %s: %s", d, exc)
 
 
 # ---------- schemas ----------
