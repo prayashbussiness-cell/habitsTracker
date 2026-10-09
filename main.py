@@ -17,11 +17,19 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("start-your-day")
 
-URL, KEY, SECRET = os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"), os.getenv("APP_SECRET")
-if not (URL and KEY and SECRET):
-    raise RuntimeError("Set SUPABASE_URL, SUPABASE_KEY and APP_SECRET (see .env.example).")
+URL = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
+KEY = (os.getenv("SUPABASE_KEY") or "").strip()
+missing = [n for n, v in (("SUPABASE_URL", URL), ("SUPABASE_KEY", KEY)) if not v]
+if missing:
+    raise RuntimeError("Missing environment variables: " + ", ".join(missing))
+if "your-project" in URL:
+    raise RuntimeError("SUPABASE_URL is still the placeholder. Paste your real Project URL from Supabase.")
+if KEY.startswith("sb_publishable"):
+    raise RuntimeError("SUPABASE_KEY is the publishable key. Use the SECRET key (sb_secret_...) from Supabase > Settings > API Keys.")
 if not URL.startswith("http"):
     URL = "https://" + URL
+# APP_SECRET is optional: if you do not set it, a secret is derived from SUPABASE_KEY (never exposed to the browser).
+SECRET = (os.getenv("APP_SECRET") or "").strip() or hashlib.sha256(("start-your-day:" + KEY).encode()).hexdigest()
 sb: Client = create_client(URL, KEY)
 
 CATS = ["Work", "Health & Fitness", "Learning", "Personal", "Finance", "Other"]

@@ -9,8 +9,8 @@ The browser never sees your Supabase key. Same layout as the Student Register pr
 1. **Supabase**: create a project, open *SQL Editor*, paste and run `schema.sql`.
 2. **Keys**: copy `.env.example` to `.env` and fill it in.
    - `SUPABASE_URL`: Project Settings > API > Project URL
-   - `SUPABASE_KEY`: the **service_role** key (server only, never put it in the frontend)
-   - `APP_SECRET`: any long random string (signs login tokens)
+   - `SUPABASE_KEY`: the **secret** key `sb_secret_...` (Settings > API Keys; server only, NOT the publishable key)
+   - `APP_SECRET`: optional. Long random string that signs login tokens (derived from the key if omitted)
 3. **Run**
 ```bash
 python -m venv .venv
