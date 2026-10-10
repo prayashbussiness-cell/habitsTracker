@@ -76,6 +76,30 @@ create table if not exists daily_statistics (
   primary key (user_id, stat_date)
 );
 
+-- Ideas page + body condition tracker
+create table if not exists ideas (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  details text not null default '',
+  time_required text not null default '',
+  advantage text not null default '',
+  skipped boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists ideas_user on ideas(user_id);
+
+-- One row per user per day. mood = mood index, body_strength = body condition, both 0-10.
+create table if not exists body_condition (
+  user_id uuid not null references users(id) on delete cascade,
+  log_date date not null,
+  mood int check (mood between 0 and 10),
+  body_strength int check (body_strength between 0 and 10),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, log_date)
+);
+
+
 -- The browser never talks to Supabase. Only the FastAPI server (service_role key) does,
 -- so lock every table down for the public anon key.
 alter table users enable row level security;
@@ -85,3 +109,5 @@ alter table daily_habit_progress enable row level security;
 alter table daily_notes enable row level security;
 alter table goals enable row level security;
 alter table daily_statistics enable row level security;
+alter table ideas enable row level security;
+alter table body_condition enable row level security;

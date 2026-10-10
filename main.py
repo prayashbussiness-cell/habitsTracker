@@ -421,6 +421,79 @@ def summary(uid: str = Depends(current_user)):
     }
 
 
+# ---------- ideas ----------
+class IdeaIn(BaseModel):
+    name: str = Field(min_length=1, max_length=150)
+    details: Optional[str] = Field("", max_length=2000)
+    time_required: Optional[str] = Field("", max_length=100)
+    advantage: Optional[str] = Field("", max_length=1000)
+
+
+class IdeaSkip(BaseModel):
+    skipped: bool
+
+
+def idea_row(b: IdeaIn) -> dict:
+    return {"name": b.name.strip(), "details": (b.details or "").strip(),
+            "time_required": (b.time_required or "").strip(), "advantage": (b.advantage or "").strip()}
+
+
+@app.get("/api/ideas")
+def list_ideas(uid: str = Depends(current_user)):
+    return run(sb.table("ideas").select("*").eq("user_id", uid).order("created_at"))
+
+
+@app.post("/api/ideas")
+def add_idea(b: IdeaIn, uid: str = Depends(current_user)):
+    return run(sb.table("ideas").insert({"user_id": uid, **idea_row(b)}))[0]
+
+
+@app.put("/api/ideas/{iid}")
+def edit_idea(iid: str, b: IdeaIn, uid: str = Depends(current_user)):
+    rows = run(sb.table("ideas").update(idea_row(b)).eq("id", iid).eq("user_id", uid))
+    if not rows:
+        raise HTTPException(404, "Idea not found.")
+    return rows[0]
+
+
+@app.patch("/api/ideas/{iid}/skip")
+def skip_idea(iid: str, b: IdeaSkip, uid: str = Depends(current_user)):
+    rows = run(sb.table("ideas").update({"skipped": b.skipped}).eq("id", iid).eq("user_id", uid))
+    if not rows:
+        raise HTTPException(404, "Idea not found.")
+    return {"status": "ok"}
+
+
+@app.delete("/api/ideas/{iid}")
+def delete_idea(iid: str, uid: str = Depends(current_user)):
+    run(sb.table("ideas").delete().eq("id", iid).eq("user_id", uid))
+    return {"status": "ok"}
+
+
+# ---------- body condition (mood index + body strength, 0-10 each, one row per day) ----------
+class ConditionIn(BaseModel):
+    date: date
+    mood: Optional[int] = Field(None, ge=0, le=10)
+    body_strength: Optional[int] = Field(None, ge=0, le=10)
+
+
+@app.get("/api/condition")
+def get_condition(d: Optional[date] = Query(None, alias="date"), days: int = Query(30, ge=1, le=366),
+                  uid: str = Depends(current_user)):
+    q = sb.table("body_condition").select("log_date,mood,body_strength").eq("user_id", uid)
+    q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (date.today() - timedelta(days=days - 1)).isoformat())
+    return run(q.order("log_date"))
+
+
+@app.put("/api/condition")
+def put_condition(b: ConditionIn, uid: str = Depends(current_user)):
+    vals = {k: v for k, v in (("mood", b.mood), ("body_strength", b.body_strength)) if v is not None}
+    if not vals:
+        raise HTTPException(422, "Choose a mood or body strength value.")
+    run(sb.table("body_condition").upsert({"user_id": uid, "log_date": b.date.isoformat(), **vals}, on_conflict="user_id,log_date"))
+    return {"status": "ok"}
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}

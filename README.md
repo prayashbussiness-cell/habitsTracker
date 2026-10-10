@@ -40,6 +40,8 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 | PUT /api/notes | day note |
 | GET/POST/PUT/DELETE /api/goals | goals |
 | GET /api/summary | monthly, yearly, streaks, category performance |
+| GET/POST/PUT/DELETE /api/ideas, PATCH /api/ideas/{id}/skip | Ideas page (name, details, time required, advantage, skip) |
+| GET/PUT /api/condition | Body condition: mood index and body strength, 0-10 per day |
 
 ## Notes
 - Login is name + phone with no OTP or password, as requested. Anyone who knows both can log in. Add Supabase Auth or SMS OTP before real use.
@@ -52,3 +54,8 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - Backend uses one Supabase client per thread and retries failed calls on a fresh client (fixes `[Errno 11] Resource temporarily unavailable`).
 - Statistics recalculation is best-effort, so a saved task is never reported as failed because of it.
 - Set `APP_SECRET` (or keep `SUPABASE_KEY` unchanged) on Render so existing login tokens stay valid between deploys.
+
+## Ideas page + Body condition (v3)
+- **Ideas** (sidebar, below Add Card): save anything on your mind with name, details, time required and advantage. Edit, delete or **Skip** (dimmed and moved to the bottom; Undo skip brings it back).
+- **Body condition** (Dashboard, beside Daily efficiency): pick Mood index 0-10 and Body strength 0-10 for the selected day. Saved instantly; a 7-day trend shows below.
+- **Existing database:** run `migration_ideas_and_condition.sql` once in Supabase > SQL Editor (new installs get it from `schema.sql`). Until then the rest of the app keeps working and a notice appears.
