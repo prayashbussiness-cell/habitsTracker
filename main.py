@@ -101,11 +101,22 @@ async def no_cache(request, call_next):
 
 
 # ---------- helpers ----------
+class SchemaOutdated(HTTPException):
+    """A new column (hours / mood / m_count) is missing: the v4 migration has not been run in Supabase yet."""
+
+    def __init__(self):
+        super().__init__(500, "Database needs one update: run migration_v4_hours_mood_m.sql in Supabase > SQL Editor, then try again.")
+
+
 def run(query):
     try:
         return query.execute().data
     except Exception as exc:  # noqa: BLE001
         log.error("Supabase error: %s", exc)
+        code = str(getattr(exc, "code", "") or "")
+        text = str(exc).lower()
+        if isinstance(exc, APIError) and (code in ("42703", "PGRST204") or "does not exist" in text or "schema cache" in text):
+            raise SchemaOutdated() from exc
         raise HTTPException(502, "Database is busy, please try again in a moment.") from exc
 
 
@@ -265,9 +276,15 @@ def me(uid: str = Depends(current_user)):
 @app.get("/api/day")
 def get_day(d: Optional[date] = Query(None, alias="date"), uid: str = Depends(current_user)):
     iso = (d or date.today()).isoformat()
-    tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done,hours").eq("user_id", uid).eq("task_date", iso).order("created_at"))
+    try:
+        tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done,hours").eq("user_id", uid).eq("task_date", iso).order("created_at"))
+    except SchemaOutdated:  # migration not run yet: keep the app working without hours
+        tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done").eq("user_id", uid).eq("task_date", iso).order("created_at"))
     tasks.sort(key=lambda t: PRIORITY_ORDER.get(t["priority"], 1))  # high, then med, then low (stable: keeps creation order inside a priority)
-    prog = run(sb.table("daily_habit_progress").select("card_id,actual,note,skipped,mood").eq("user_id", uid).eq("progress_date", iso))
+    try:
+        prog = run(sb.table("daily_habit_progress").select("card_id,actual,note,skipped,mood").eq("user_id", uid).eq("progress_date", iso))
+    except SchemaOutdated:
+        prog = run(sb.table("daily_habit_progress").select("card_id,actual,note,skipped").eq("user_id", uid).eq("progress_date", iso))
     note = run(sb.table("daily_notes").select("note").eq("user_id", uid).eq("note_date", iso))
     return {"date": iso, "tasks": tasks, "progress": {p["card_id"]: p for p in prog}, "note": note[0]["note"] if note else ""}
 
@@ -345,8 +362,14 @@ def delete_card(cid: str, uid: str = Depends(current_user)):
 def put_progress(b: ProgressIn, uid: str = Depends(current_user)):
     if not run(sb.table("habit_cards").select("id").eq("id", b.card_id).eq("user_id", uid)):
         raise HTTPException(404, "Card not found.")
-    run(sb.table("daily_habit_progress").upsert({"user_id": uid, "card_id": b.card_id, "progress_date": b.date.isoformat(),
-        "actual": b.actual, "note": b.note or "", "skipped": b.skipped, "mood": b.mood}, on_conflict="card_id,progress_date"))
+    row = {"user_id": uid, "card_id": b.card_id, "progress_date": b.date.isoformat(),
+           "actual": b.actual, "note": b.note or "", "skipped": b.skipped}
+    try:
+        run(sb.table("daily_habit_progress").upsert({**row, "mood": b.mood}, on_conflict="card_id,progress_date"))
+    except SchemaOutdated:
+        if b.mood is not None:
+            raise  # the person is saving a mood but the column is missing: tell them
+        run(sb.table("daily_habit_progress").upsert(row, on_conflict="card_id,progress_date"))
     recompute(uid, b.date)
     return {"status": "ok"}
 
@@ -488,9 +511,14 @@ class ConditionIn(BaseModel):
 @app.get("/api/condition")
 def get_condition(d: Optional[date] = Query(None, alias="date"), days: int = Query(30, ge=1, le=366),
                   uid: str = Depends(current_user)):
-    q = sb.table("body_condition").select("log_date,mood,body_strength,m_count").eq("user_id", uid)
-    q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (date.today() - timedelta(days=days - 1)).isoformat())
-    return run(q.order("log_date"))
+    def build(cols):
+        q = sb.table("body_condition").select(cols).eq("user_id", uid)
+        q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (date.today() - timedelta(days=days - 1)).isoformat())
+        return q.order("log_date")
+    try:
+        return run(build("log_date,mood,body_strength,m_count"))
+    except SchemaOutdated:
+        return run(build("log_date,mood,body_strength"))
 
 
 @app.put("/api/condition")

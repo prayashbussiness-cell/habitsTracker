@@ -68,3 +68,4 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - **Current streak card removed** from the Dashboard.
 - **Tasks are always sorted** high, then med, then low (Dashboard and Daily Tasks).
 - **Existing database:** run `migration_v4_hours_mood_m.sql` once in Supabase > SQL Editor *before* using this version (new installs get it from `schema.sql`).
+- If `migration_v4_hours_mood_m.sql` has not been run yet, the app still loads; saving hours, a habit mood or the M counter shows "Database needs one update: run migration_v4_hours_mood_m.sql".
