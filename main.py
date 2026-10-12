@@ -87,6 +87,7 @@ class Q:
 
 sb = Q()
 
+PRIORITY_ORDER = {"high": 0, "med": 1, "low": 2}
 CATS = ["Work", "Health & Fitness", "Learning", "Personal", "Finance", "Other"]
 app = FastAPI(title="Start Your Day API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -203,7 +204,8 @@ class TaskIn(BaseModel):
 
 
 class TaskPatch(BaseModel):
-    done: bool
+    done: Optional[bool] = None
+    hours: Optional[float] = Field(None, ge=0, le=99)  # time spent on the task, in hours
 
 
 class CardIn(BaseModel):
@@ -221,6 +223,7 @@ class ProgressIn(BaseModel):
     actual: float = Field(0, ge=0)
     note: Optional[str] = ""
     skipped: bool = False
+    mood: Optional[int] = Field(None, ge=0, le=10)  # how you felt doing this habit, 0-10
 
 
 class NoteIn(BaseModel):
@@ -262,8 +265,9 @@ def me(uid: str = Depends(current_user)):
 @app.get("/api/day")
 def get_day(d: Optional[date] = Query(None, alias="date"), uid: str = Depends(current_user)):
     iso = (d or date.today()).isoformat()
-    tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done").eq("user_id", uid).eq("task_date", iso).order("created_at"))
-    prog = run(sb.table("daily_habit_progress").select("card_id,actual,note,skipped").eq("user_id", uid).eq("progress_date", iso))
+    tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done,hours").eq("user_id", uid).eq("task_date", iso).order("created_at"))
+    tasks.sort(key=lambda t: PRIORITY_ORDER.get(t["priority"], 1))  # high, then med, then low (stable: keeps creation order inside a priority)
+    prog = run(sb.table("daily_habit_progress").select("card_id,actual,note,skipped,mood").eq("user_id", uid).eq("progress_date", iso))
     note = run(sb.table("daily_notes").select("note").eq("user_id", uid).eq("note_date", iso))
     return {"date": iso, "tasks": tasks, "progress": {p["card_id"]: p for p in prog}, "note": note[0]["note"] if note else ""}
 
@@ -292,7 +296,10 @@ def own_task(uid, tid):
 @app.patch("/api/tasks/{tid}")
 def toggle_task(tid: str, b: TaskPatch, uid: str = Depends(current_user)):
     t = own_task(uid, tid)
-    run(sb.table("daily_tasks").update({"done": b.done}).eq("id", tid))
+    patch = {k: v for k, v in (("done", b.done), ("hours", b.hours)) if v is not None}
+    if not patch:
+        raise HTTPException(422, "Nothing to update.")
+    run(sb.table("daily_tasks").update(patch).eq("id", tid))
     recompute(uid, t["task_date"])
     return {"status": "ok"}
 
@@ -339,7 +346,7 @@ def put_progress(b: ProgressIn, uid: str = Depends(current_user)):
     if not run(sb.table("habit_cards").select("id").eq("id", b.card_id).eq("user_id", uid)):
         raise HTTPException(404, "Card not found.")
     run(sb.table("daily_habit_progress").upsert({"user_id": uid, "card_id": b.card_id, "progress_date": b.date.isoformat(),
-        "actual": b.actual, "note": b.note or "", "skipped": b.skipped}, on_conflict="card_id,progress_date"))
+        "actual": b.actual, "note": b.note or "", "skipped": b.skipped, "mood": b.mood}, on_conflict="card_id,progress_date"))
     recompute(uid, b.date)
     return {"status": "ok"}
 
@@ -475,21 +482,22 @@ class ConditionIn(BaseModel):
     date: date
     mood: Optional[int] = Field(None, ge=0, le=10)
     body_strength: Optional[int] = Field(None, ge=0, le=10)
+    m_count: Optional[int] = Field(None, ge=0, le=999)  # daily "M" counter
 
 
 @app.get("/api/condition")
 def get_condition(d: Optional[date] = Query(None, alias="date"), days: int = Query(30, ge=1, le=366),
                   uid: str = Depends(current_user)):
-    q = sb.table("body_condition").select("log_date,mood,body_strength").eq("user_id", uid)
+    q = sb.table("body_condition").select("log_date,mood,body_strength,m_count").eq("user_id", uid)
     q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (date.today() - timedelta(days=days - 1)).isoformat())
     return run(q.order("log_date"))
 
 
 @app.put("/api/condition")
 def put_condition(b: ConditionIn, uid: str = Depends(current_user)):
-    vals = {k: v for k, v in (("mood", b.mood), ("body_strength", b.body_strength)) if v is not None}
+    vals = {k: v for k, v in (("mood", b.mood), ("body_strength", b.body_strength), ("m_count", b.m_count)) if v is not None}
     if not vals:
-        raise HTTPException(422, "Choose a mood or body strength value.")
+        raise HTTPException(422, "Nothing to save.")
     run(sb.table("body_condition").upsert({"user_id": uid, "log_date": b.date.isoformat(), **vals}, on_conflict="user_id,log_date"))
     return {"status": "ok"}
 

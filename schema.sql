@@ -30,6 +30,7 @@ create table if not exists daily_tasks (
   priority text not null default 'med' check (priority in ('high','med','low')),
   description text,
   done boolean not null default false,
+  hours numeric not null default 0 check (hours >= 0),   -- time spent on the task
   created_at timestamptz not null default now()
 );
 create index if not exists daily_tasks_user_date on daily_tasks(user_id, task_date);
@@ -42,6 +43,7 @@ create table if not exists daily_habit_progress (
   actual numeric not null default 0 check (actual >= 0),
   note text,
   skipped boolean not null default false,
+  mood int check (mood between 0 and 10),                -- how you felt doing this habit
   unique (card_id, progress_date)
 );
 create index if not exists dhp_user_date on daily_habit_progress(user_id, progress_date);
@@ -95,6 +97,7 @@ create table if not exists body_condition (
   log_date date not null,
   mood int check (mood between 0 and 10),
   body_strength int check (body_strength between 0 and 10),
+  m_count int not null default 0 check (m_count >= 0),   -- daily "M" counter
   updated_at timestamptz not null default now(),
   primary key (user_id, log_date)
 );

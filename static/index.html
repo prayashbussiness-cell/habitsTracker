@@ -87,7 +87,12 @@ label{display:block;font-size:12px;color:var(--t2);margin:14px 0 6px;font-weight
 .ctr div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font-size:10px;color:var(--t3)}
 .ctr i{width:100%;max-width:26px;border-radius:6px 6px 3px 3px;background:var(--tr)}
 .ctr .now i{background:var(--ac)}
-@media(max-width:700px){.span2{grid-column:auto}.chips{grid-template-columns:repeat(6,1fr)}.chip{min-height:44px}}
+.span4{grid-column:1/-1}
+.hrs{width:66px;min-height:34px;padding:4px 8px;text-align:center}
+.mood{width:84px;min-height:34px;padding:4px 8px}
+.mbtn{width:44px;padding:0}
+.hstat{flex:1;min-width:110px;background:var(--el);border-radius:12px;padding:8px 12px}
+@media(max-width:700px){.span2,.span4{grid-column:auto}.hrs{width:58px}.chips{grid-template-columns:repeat(6,1fr)}.chip{min-height:44px}}
 </style></head><body>
 <div id="auth"></div><div class="app"><nav class="side" id="side"></nav><main id="main"></main></div>
 <nav class="bot" id="bot"></nav><div id="toast"></div><div id="modal"></div>
@@ -118,15 +123,15 @@ return j}catch(e){if(e.status)throw e;lastErr=e;if(i<tries-1){await sleep(600*(i
 const e=new Error('Cannot reach the server. Check your internet and try again.');e.status=0;e.cause=lastErr;throw e}
 window.addEventListener('unhandledrejection',e=>fail(e.reason));
 function day(d){return S.days[d]||(S.days[d]={tasks:[],h:{},notes:''})}
-const toDay=d=>({tasks:d.tasks.map(t=>({id:t.id,n:t.name,cat:t.category,pri:t.priority,done:t.done})),h:Object.fromEntries(Object.entries(d.progress).map(([k,v])=>[k,{a:+v.actual,note:v.note||'',skip:v.skipped}])),notes:d.note||''});
+const toDay=d=>({tasks:d.tasks.map(t=>({id:t.id,n:t.name,cat:t.category,pri:t.priority,done:t.done,hours:+t.hours||0})),h:Object.fromEntries(Object.entries(d.progress).map(([k,v])=>[k,{a:+v.actual,note:v.note||'',skip:v.skipped,mood:v.mood}])),notes:d.note||''});
 const setHist=h=>{S.hist={};h.forEach(x=>S.hist[x.date]={td:x.tasks_done,n:x.tasks_total,hd:x.habits_done,hn:x.habits_total,sk:x.habits_skipped,tp:x.task_pct,eff:x.efficiency})};
 async function loadDay(){try{S.days[S.date]=toDay(await api('GET','/api/day?date='+S.date))}catch(e){fail(e)}render();
-try{const c=await api('GET','/api/condition?date='+S.date);const x=c[0];S.cond[S.date]=x?{mood:x.mood,body:x.body_strength}:{};render()}catch(e){}}
+try{const c=await api('GET','/api/condition?date='+S.date);const x=c[0];S.cond[S.date]=x?{mood:x.mood,body:x.body_strength,m:x.m_count||0}:{};render()}catch(e){}}
 async function loadExtras(){
 // Ideas + body condition load separately so the rest of the app still works if the new tables are not created yet.
 const[i,c]=await Promise.all([api('GET','/api/ideas').catch(()=>null),api('GET','/api/condition?days=90').catch(()=>null)]);
 if(i)S.ideas=i.map(x=>({id:x.id,name:x.name,details:x.details||'',time:x.time_required||'',adv:x.advantage||'',skip:!!x.skipped}));
-if(c){S.cond={};c.forEach(x=>S.cond[x.log_date]={mood:x.mood,body:x.body_strength})}
+if(c){S.cond={};c.forEach(x=>S.cond[x.log_date]={mood:x.mood,body:x.body_strength,m:x.m_count||0})}
 if(!i&&!c&&S.user)toast('Ideas / body condition not available yet. Run migration_ideas_and_condition.sql in Supabase.',6000);
 render()}
 async function sync(){try{const[h,s]=await Promise.all([api('GET','/api/history?days=14'),api('GET','/api/summary')]);setHist(h);S.sum=s;S.catPerf=s.categories}catch(e){}render()}
@@ -143,8 +148,13 @@ async function retryBoot(){for(let i=0;i<6&&TOK;i++){await sleep(2500*(i+1));try
 S.offline=true;render()}
 let _last=0;const refreshNow=()=>{if(!S.user||!TOK||Date.now()-_last<15000)return;_last=Date.now();loadAll()};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshNow()});window.addEventListener('online',()=>{_last=0;refreshNow()});
-const putProg=id=>{const h=day(S.date).h[id];api('PUT','/api/progress',{card_id:id,date:S.date,actual:h.a,note:h.note||'',skipped:!!h.skip}).then(sync).catch(e=>{fail(e);loadDay()})};
+const putProg=id=>{const h=day(S.date).h[id];api('PUT','/api/progress',{card_id:id,date:S.date,actual:h.a,note:h.note||'',skipped:!!h.skip,mood:h.mood==null?null:h.mood}).then(sync).catch(e=>{fail(e);loadDay()})};
 const hp=(c,d)=>{const a=(day(d).h[c.id]||{a:0}).a;return Math.min(100,Math.round(a/c.target*100))};
+const PRI={high:0,med:1,low:2},byPri=ts=>[...ts].sort((a,b)=>(PRI[a.pri]??1)-(PRI[b.pri]??1));
+const fh=x=>(Math.round(x*100)/100)+'h';
+const habPct=d=>{const D=day(d),act=S.cards.filter(c=>!(D.h[c.id]||{}).skip);return act.length?Math.round(act.reduce((a,c)=>a+hp(c,d),0)/act.length):0};
+const hours=d=>{const D=day(d),th=D.tasks.reduce((a,t)=>a+(+t.hours||0),0);
+const hh=S.cards.reduce((a,c)=>{const h=D.h[c.id]||{};if(h.skip)return a;const u=String(c.unit||'').toLowerCase(),x=+h.a||0;return a+(/^(h|hr|hrs|hour|hours)$/.test(u)?x:/^min/.test(u)?x/60:0)},0);return{th,hh}};
 function stats(d){if(!S.days[d]&&S.hist[d])return S.hist[d];const D=day(d),td=D.tasks.filter(t=>t.done).length,n=D.tasks.length,act=S.cards.filter(c=>!(D.h[c.id]||{}).skip),hn=act.length,sk=S.cards.length-hn,hd=act.filter(c=>hp(c,d)>=100).length;
 const tr=n?td/n:0,hr=hn?act.reduce((a,c)=>a+hp(c,d),0)/hn/100:0,cm=[];if(n)cm.push(tr);if(hn)cm.push(hr);
 return{td,n,hd,hn,sk,tp:Math.round(tr*100),eff:cm.length?Math.round(cm.reduce((a,b)=>a+b)/cm.length*100):0}}
@@ -159,19 +169,21 @@ const NAV=[['dash','Dashboard','home'],['tasks','Daily Tasks','tasks'],['add','A
 
 function Header(){const u=S.user.name;return `<div class="row sp" style="align-items:flex-start"><h1>START<br>YOUR DAY</h1><button class="btn g mlo" data-a="logout">${ic('out')} Log out</button></div><p class="sub">${S.page=='dash'?greet()+', '+u:u} · ${fd(S.date,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}<br><span class="mut">Plan it. Track it. Complete it.</span></p>`}
 function DateSel(){return `<div class="dsel" style="margin-bottom:18px"><button class="btn g" data-a="d" data-v="-1" aria-label="Previous day">${ic('left')}</button><input type="date" value="${S.date}" data-a="pick"><button class="btn g" data-a="d" data-v="1" aria-label="Next day">${ic('right')}</button>${S.date!==TODAY?'<button class="btn g" data-a="pick" data-v="'+TODAY+'">Today</button>':''}</div>`}
-function Task(t){return `<div class="task ${t.done?'done':''}"><button class="ck ${t.done?'on':''}" data-a="tt" data-v="${t.id}" aria-label="Toggle ${t.n}">${ic('check')}</button><div style="flex:1;min-width:0"><div class="nm">${t.n}</div><div class="mut">${t.done?'Completed':'Pending'}</div></div><span class="tag">${t.cat}</span><span class="tag ${t.pri=='high'?'hh':t.pri=='med'?'hi':'lo'}">${t.pri}</span><button class="ib" data-a="dt" data-v="${t.id}" aria-label="Delete task">${ic('trash')}</button></div>`}
+function Task(t){return `<div class="task ${t.done?'done':''}"><button class="ck ${t.done?'on':''}" data-a="tt" data-v="${t.id}" aria-label="Toggle ${t.n}">${ic('check')}</button><div style="flex:1;min-width:0"><div class="nm">${t.n}</div><div class="mut">${t.done?'Completed':'Pending'}</div></div><span class="row" style="gap:4px;flex:none" title="Hours spent on this task"><input class="num hrs" type="number" min="0" max="99" step="0.25" placeholder="0" value="${t.hours||''}" data-a="th" data-v="${t.id}" aria-label="Hours spent on ${esc(t.n)}"><span class="mut">h</span></span><span class="tag">${t.cat}</span><span class="tag ${t.pri=='high'?'hh':t.pri=='med'?'hi':'lo'}">${t.pri}</span><button class="ib" data-a="dt" data-v="${t.id}" aria-label="Delete task">${ic('trash')}</button></div>`}
 function Habit(c){const D=day(S.date),h=D.h[c.id]||{a:0,note:''},p=hp(c,S.date),op=S.open[c.id]||h.note,sk=h.skip;
 return `<div class="card hab ${p>=100&&!sk?'full':''}" style="${sk?'opacity:.65':''}"><div class="row"><div class="ico">${ic(c.icon)}</div><div style="flex:1"><h2>${c.name}</h2><span class="mut">${c.cat}</span></div><button class="ib" data-a="ec" data-v="${c.id}" aria-label="Edit">${ic('edit')}</button><button class="ib" data-a="dc" data-v="${c.id}" aria-label="Delete">${ic('trash')}</button></div>
 <div class="mut" style="margin-top:6px">Target</div><b>${c.target} ${c.unit}</b>
-${sk?`<span class="tag" style="align-self:flex-start;margin:8px 0">Skipped · not counted today</span>`:`<div class="row"><div><div class="mut">Today's progress</div><input class="num" type="number" min="0" step="0.25" value="${h.a}" data-a="act" data-v="${c.id}"></div><span class="t2">${c.unit}</span></div>${bar(p,p>=100?'ok':'')}<div class="row sp"><b>${p}%</b><span class="mut">${p>=100?(h.a>c.target?'Exceeded target':'Completed'):p+'% completed'}</span></div>`}
+${sk?`<span class="tag" style="align-self:flex-start;margin:8px 0">Skipped · not counted today</span>`:`<div class="row"><div><div class="mut">Today's progress</div><input class="num" type="number" min="0" step="0.25" value="${h.a}" data-a="act" data-v="${c.id}"></div><span class="t2">${c.unit}</span></div><div class="row" style="margin-top:4px"><div><div class="mut">Mood index (feeling doing this)</div><select class="mood" data-a="hm" data-v="${c.id}" aria-label="Mood index for ${esc(c.name)}"><option value="">-</option>${[...Array(11)].map((_,i)=>`<option value="${i}" ${h.mood===i?'selected':''}>${i}</option>`).join('')}</select></div><span class="t2">/ 10</span></div>${bar(p,p>=100?'ok':'')}<div class="row sp"><b>${p}%</b><span class="mut">${p>=100?(h.a>c.target?'Exceeded target':'Completed'):p+'% completed'}</span></div>`}
 ${op?`<textarea rows="2" placeholder="Add a note about today's progress or issue..." data-a="note" data-v="${c.id}">${h.note||''}</textarea>`:''}
 <div class="row sp">${op?'<span></span>':`<button class="mut" data-a="no" data-v="${c.id}" style="display:flex;gap:6px;align-items:center;min-height:36px">${ic('note')} Add note</button>`}<button class="tag" data-a="sk" data-v="${c.id}" style="min-height:32px;padding:4px 12px">${sk?'Undo skip':'Skip today'}</button></div></div>`}
 function Ring(p,sz){return `<div class="ring" style="--p:${p}"><b>${p}%</b></div>`}
-function Overview(){const s=stats(S.date),h=s.hd,gl=S.goals.filter(g=>g.p>=75).length;
-return `<div class="card hero">${Ring(s.eff)}<div style="flex:1;width:100%"><div class="mut">Daily efficiency</div><div class="big">${s.td} / ${s.n} <span class="t2" style="font-size:15px">tasks done</span></div>${bar(s.tp)}<div class="mut">Average of task completion and habit progress</div></div></div>
-${Cond()}<div class="card span2"><div class="mut">Habits</div><div class="big">${h} / ${s.hn}</div><div class="mut">completed today${s.sk?' · '+s.sk+' skipped':''}</div>${bar(s.hn?h/s.hn*100:0,'ok')}<div class="mut">Goals ${gl} / ${S.goals.length}</div></div>
-<div class="card span2"><div class="mut">Current streak</div><div class="big row" style="color:var(--wn)">${ic('flame')} ${SM().streak.current||0} days</div><div class="mut">Best ${SM().streak.best||0} days</div>${Streak()}</div>`}
-function Streak(){const ds=[...Array(7)].map((_,i)=>shift(TODAY,i-6));return `<div class="dots" style="margin-top:10px">${ds.map(d=>`<div>${fd(d,{weekday:'narrow'})}<span>${stats(d).eff>=50?ic('check'):''}</span></div>`).join('')}</div>`}
+function Overview(){const s=stats(S.date),h=s.hd,gl=S.goals.filter(g=>g.p>=75).length,hr=hours(S.date),hpc=habPct(S.date);
+return `<div class="card hero">${Ring(s.eff)}<div style="flex:1;width:100%"><div class="mut">Daily efficiency <span class="t2">· overall</span></div>
+<div class="row sp" style="margin-top:8px"><div><span class="mut">Tasks</span> <b>${s.td} / ${s.n}</b> <span class="mut">done</span></div><b>${s.tp}%</b></div>${bar(s.tp)}
+<div class="row sp"><div><span class="mut">Habits</span> <b>${h} / ${s.hn}</b> <span class="mut">done</span></div><b>${hpc}%</b></div>${bar(hpc,'ok')}
+<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px"><div class="hstat"><div class="mut">Task hours done</div><b>${fh(hr.th)}</b></div><div class="hstat"><div class="mut">Habit hours done</div><b>${fh(hr.hh)}</b></div></div>
+<div class="mut" style="margin-top:8px">Overall = average of task completion and habit progress</div></div></div>
+${Cond()}<div class="card span4"><div class="mut">Habits</div><div class="big">${h} / ${s.hn}</div><div class="mut">completed today${s.sk?' · '+s.sk+' skipped':''}</div>${bar(s.hn?h/s.hn*100:0,'ok')}<div class="mut">Goals ${gl} / ${S.goals.length}</div></div>`}
 function Weekly(){const w=[],mon=shift(TODAY,-6);for(let i=0;i<7;i++){const d=shift(mon,i);w.push([fd(d,{weekday:'short'}),stats(d).eff,d])}
 return `<div class="card"><h2>Weekly efficiency</h2><div class="bars" style="margin-top:14px">${w.map(x=>`<div class="${x[2]==S.date?'now':''}"><span>${x[1]}%</span><i style="height:${x[1]*1.1}px"></i><span>${x[0]}</span></div>`).join('')}</div></div>`}
 function Monthly(){const m=SM().month;return `<div class="card"><h2>Monthly performance</h2><div class="row" style="margin-top:14px"><div class="donut" style="background:conic-gradient(var(--ac) ${m.avg||0}%,var(--tr) 0)"><b>${m.avg||0}%</b></div><div style="flex:1"><div class="mut">Tasks</div><b>${m.tasks_done||0} / ${m.tasks_total||0}</b><div class="mut" style="margin-top:6px">Habits completed</div><b>${m.habits_pct||0}%</b><div class="mut" style="margin-top:6px">Goals achieved</div><b>${m.goals_pct||0}%</b></div></div></div>`}
@@ -180,12 +192,12 @@ function Goals(){return `<div class="card"><div class="row sp"><h2>Goals</h2><bu
 function Cats(){return `<div class="card"><h2>Category performance</h2>${S.catPerf.map(g=>`<div style="margin-top:12px" class="row sp"><span>${g[0]}</span><b>${g[1]}%</b></div>${bar(g[1],g[1]>=80?'ok':'')}`).join('')||'<p class="mut" style="margin-top:10px">Complete tasks and habits to see this.</p>'}</div>`}
 function Dash(){const D=day(S.date);
 return `${Header()}${DateSel()}<div class="grid g4" style="margin-bottom:16px">${Overview()}</div>
-<div class="grid gm"><div class="card"><div class="row sp"><h2>Today's tasks</h2><span class="mut">${stats(S.date).td} / ${D.tasks.length}</span></div><div style="margin-top:12px">${D.tasks.slice(0,5).map(Task).join('')}<button class="btn g" data-a="go" data-v="tasks" style="width:100%">View all tasks</button></div></div>${Weekly()}</div>
+<div class="grid gm"><div class="card"><div class="row sp"><h2>Today's tasks</h2><span class="mut">${stats(S.date).td} / ${D.tasks.length}</span></div><div style="margin-top:12px">${byPri(D.tasks).slice(0,5).map(Task).join('')}<button class="btn g" data-a="go" data-v="tasks" style="width:100%">View all tasks</button></div></div>${Weekly()}</div>
 <h2 style="margin:24px 0 12px">Daily habits</h2><div class="grid g4" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${S.cards.map(Habit).join('')||'<p class="t2">No cards yet. Add one to start tracking.</p>'}</div>
 <div class="grid g2" style="margin-top:16px">${Monthly()}${Yearly()}</div><div class="grid g2" style="margin-top:16px">${Goals()}${Cats()}</div>`}
 function Tasks(){const D=day(S.date),s=stats(S.date),days=[...Array(7)].map((_,i)=>shift(TODAY,-i));
 return `${Header()}${DateSel()}<div class="card" style="margin-bottom:16px"><div class="row sp"><div><div class="mut">Overall progress</div><div class="big">${s.tp}%</div><div class="mut">${s.td} / ${s.n} completed · habits ${s.hd} / ${s.hn}${s.sk?' ('+s.sk+' skipped)':''} · efficiency ${s.eff}%</div></div><button class="btn" data-a="mt">${ic('plus')} Add task</button></div>${bar(s.tp)}<textarea rows="2" style="margin-top:10px" placeholder="Add a note about your day..." data-a="dnote">${D.notes||''}</textarea></div>
-<div class="grid gm"><div>${D.tasks.map(Task).join('')||'<div class="card t2">No tasks for this day. Add one to get started.</div>'}</div>
+<div class="grid gm"><div>${byPri(D.tasks).map(Task).join('')||'<div class="card t2">No tasks for this day. Add one to get started.</div>'}</div>
 <div class="card"><h2>History</h2><div style="margin-top:10px">${days.map(d=>{const t=stats(d),l=lab(t.eff);return `<button class="hist ${d==S.date?'on':''}" data-a="pick" data-v="${d}"><b>${fd(d,{month:'short',day:'numeric'})}</b><span>${t.td}/${t.n} tasks</span><span>${t.hd}/${t.hn} habits</span><b>${t.eff}%</b><span class="st" style="background:${l[1]}22;color:${l[1]}">${l[0]}</span></button>`}).join('')}</div></div></div>${HabSec()}`}
 function HabSec(){return `<div class="row sp" style="margin:24px 0 12px;flex-wrap:wrap"><h2>Daily habits</h2><span class="mut">Set up once on Add Card. Skipped habits don't count toward efficiency.</span></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${S.cards.map(Habit).join('')||'<div class="card t2">No habit cards yet. Create one on the Add Card page.</div>'}</div>`}
 function Add(){const f=S.form||(S.form={name:'',cat:'Learning',type:'Time',target:1,unit:'hour',desc:'',icon:'book'});
@@ -205,6 +217,7 @@ function Cond(){const c=S.cond[S.date]||{},set=[c.mood,c.body].filter(v=>v!=null
 const row=(k,title,val)=>`<div style="margin-top:14px"><div class="row sp"><span class="mut">${title}</span><b>${val==null?'-':val} <span class="mut">/ 10</span></b></div><div class="chips">${[...Array(11)].map((_,i)=>`<button class="chip ${val===i?'on':''}" data-a="${k}" data-v="${i}" aria-label="${title} ${i}">${i}</button>`).join('')}</div></div>`;
 const wk=[...Array(7)].map((_,i)=>shift(S.date,i-6)).map(d=>{const x=S.cond[d]||{},v=[x.mood,x.body].filter(q=>q!=null);return[d,v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10):null]});
 return `<div class="card span2"><div class="row sp"><h2>Body condition</h2><span class="st" style="background:${l[1]}22;color:${l[1]}">${l[0]}${sc==null?'':' · '+sc+'%'}</span></div>${row('mood','Mood index',c.mood)}${row('body','Body strength',c.body)}
+<div class="row sp" style="margin-top:16px"><b style="font-size:20px">M</b><div class="row"><button class="btn g mbtn" data-a="mm" data-v="-1" aria-label="M minus one">&minus;</button><b style="min-width:34px;text-align:center;font-size:22px">${c.m||0}</b><button class="btn mbtn" data-a="mm" data-v="1" aria-label="M plus one">${ic('plus')}</button></div></div>
 <div class="mut" style="margin-top:14px">Last 7 days</div><div class="ctr">${wk.map(w=>`<div class="${w[0]==S.date?'now':''}" title="${w[1]==null?'No entry':w[1]+'%'}"><i style="height:${w[1]==null?3:Math.max(4,w[1]*.4)}px;${w[1]==null?'opacity:.5':''}"></i><span>${fd(w[0],{weekday:'narrow'})}</span></div>`).join('')}</div></div>`}
 function Idea(i){return `<div class="card hab" style="${i.skip?'opacity:.65':''}"><div class="row"><div class="ico">${ic('bulb')}</div><div style="flex:1;min-width:0"><h2 class="wrap">${esc(i.name)}</h2><span class="mut">Idea</span></div><button class="ib" data-a="ei" data-v="${i.id}" aria-label="Edit idea">${ic('edit')}</button><button class="ib" data-a="di" data-v="${i.id}" aria-label="Delete idea">${ic('trash')}</button></div>
 <div class="mut" style="margin-top:6px">Details</div><div class="wrap">${esc(i.details)||'<span class="mut">-</span>'}</div>
@@ -251,6 +264,7 @@ else if(a=='close'){if(b.classList.contains('mod')&&e.target!==b)return;$('#moda
 else if(a=='ct'){const n=$('#tn').value.trim();if(!n)return toast('Enter a task name');const cat=$('#tc').value,pri=$('#tp').value,dt=S.date;b.disabled=true;b.textContent='Adding...';
 api('POST','/api/tasks',{date:dt,name:n,category:cat,priority:pri,description:$('#td').value}).then(async()=>{$('#modal').innerHTML='';toast('Task added');await loadDay();sync()}).catch(e=>{b.disabled=false;b.textContent='Add task';fail(e)});return}
 else if(a=='mood'||a=='body'){const c=S.cond[S.date]=S.cond[S.date]||{};c[a]=+v;api('PUT','/api/condition',{date:S.date,[a=='body'?'body_strength':'mood']:+v}).catch(e=>{fail(e);loadDay()})}
+else if(a=='mm'){const c=S.cond[S.date]=S.cond[S.date]||{};c.m=Math.max(0,(c.m||0)+(+v));api('PUT','/api/condition',{date:S.date,m_count:c.m}).catch(e=>{fail(e);loadDay()})}
 else if(a=='mi'){$('#modal').innerHTML=ideaModal();return}
 else if(a=='ei'){$('#modal').innerHTML=ideaModal(S.ideas.find(i=>i.id==v));return}
 else if(a=='ci'){const n=$('#im_n').value.trim();if(!n)return toast('Enter an idea name');b.disabled=true;b.textContent='Saving...';
@@ -266,6 +280,8 @@ render()});
 document.addEventListener('change',e=>{const t=e.target,a=t.dataset.a,v=t.dataset.v;
 if(a=='pick'){S.date=t.value||TODAY;loadDay()}
 else if(a=='act'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].a=Math.max(0,+t.value||0);putProg(v);render()}
+else if(a=='th'){const tk=day(S.date).tasks.find(x=>x.id==v);if(tk){tk.hours=Math.min(99,Math.max(0,+t.value||0));api('PATCH','/api/tasks/'+v,{hours:tk.hours}).then(sync).catch(e=>{fail(e);loadDay()});render()}}
+else if(a=='hm'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].mood=t.value===''?null:+t.value;putProg(v);render()}
 else if(a=='dnote'){day(S.date).notes=t.value;api('PUT','/api/notes',{date:S.date,note:t.value}).then(()=>toast('Note saved')).catch(fail)}
 else if(a=='note'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].note=t.value;putProg(v);toast('Note saved')}});
 document.addEventListener('input',e=>{const k=e.target.dataset.f;if(!k)return;S.form[k]=e.target.value;if(k=='cat'||k=='type')return pv();pv()});

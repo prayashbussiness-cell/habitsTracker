@@ -59,3 +59,12 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - **Ideas** (sidebar, below Add Card): save anything on your mind with name, details, time required and advantage. Edit, delete or **Skip** (dimmed and moved to the bottom; Undo skip brings it back).
 - **Body condition** (Dashboard, beside Daily efficiency): pick Mood index 0-10 and Body strength 0-10 for the selected day. Saved instantly; a 7-day trend shows below.
 - **Existing database:** run `migration_ideas_and_condition.sql` once in Supabase > SQL Editor (new installs get it from `schema.sql`). Until then the rest of the app keeps working and a notice appears.
+
+## v4: hours, mood per habit, M counter, priority order
+- **Task hours**: every task has an hour counter (0 to 99, steps of 0.25). Saved instantly.
+- **Mood index per habit**: each habit card has a 0-10 mood field for how you felt doing it that day.
+- **Daily efficiency card** now shows Tasks % and Habits % as separate bars, the overall % in the ring, and *Task hours done* / *Habit hours done* (habits counted when their unit is hour or min).
+- **M counter** (Body condition card): tap + / - to count per day. Shown as just "M".
+- **Current streak card removed** from the Dashboard.
+- **Tasks are always sorted** high, then med, then low (Dashboard and Daily Tasks).
+- **Existing database:** run `migration_v4_hours_mood_m.sql` once in Supabase > SQL Editor *before* using this version (new installs get it from `schema.sql`).
