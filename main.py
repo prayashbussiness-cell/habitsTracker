@@ -105,7 +105,7 @@ class SchemaOutdated(HTTPException):
     """A new column (hours / mood / m_count) is missing: the v4 migration has not been run in Supabase yet."""
 
     def __init__(self):
-        super().__init__(500, "Database needs one update: run migration_v4_hours_mood_m.sql in Supabase > SQL Editor, then try again.")
+        super().__init__(500, "Database needs one update: run migration_v5_story_god_targets.sql (and migration_v4_hours_mood_m.sql if you have not yet) in Supabase > SQL Editor, then try again.")
 
 
 def run(query):
@@ -501,11 +501,24 @@ def delete_idea(iid: str, uid: str = Depends(current_user)):
 
 
 # ---------- body condition (mood index + body strength, 0-10 each, one row per day) ----------
+# "Overall story of the day" choices (the labels live in static/index.html, STORY constant)
+STORIES = {"fight", "messed", "won", "leave", "frustrated"}
+
+
 class ConditionIn(BaseModel):
     date: date
     mood: Optional[int] = Field(None, ge=0, le=10)
     body_strength: Optional[int] = Field(None, ge=0, le=10)
     m_count: Optional[int] = Field(None, ge=0, le=999)  # daily "M" counter
+    god_count: Optional[int] = Field(None, ge=0, le=999)  # daily "God" counter
+    story: Optional[str] = None  # overall story of the day (one of STORIES, "" clears it)
+
+    @field_validator("story")
+    @classmethod
+    def check_story(cls, v):
+        if v is not None and v != "" and v not in STORIES:
+            raise ValueError("Unknown day story.")
+        return v
 
 
 @app.get("/api/condition")
@@ -515,18 +528,69 @@ def get_condition(d: Optional[date] = Query(None, alias="date"), days: int = Que
         q = sb.table("body_condition").select(cols).eq("user_id", uid)
         q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (date.today() - timedelta(days=days - 1)).isoformat())
         return q.order("log_date")
-    try:
-        return run(build("log_date,mood,body_strength,m_count"))
-    except SchemaOutdated:
-        return run(build("log_date,mood,body_strength"))
+    for cols in ("log_date,mood,body_strength,m_count,god_count,story", "log_date,mood,body_strength,m_count"):
+        try:
+            return run(build(cols))
+        except SchemaOutdated:
+            continue  # migration not run yet: fall back to fewer columns so the app keeps working
+    return run(build("log_date,mood,body_strength"))
 
 
 @app.put("/api/condition")
 def put_condition(b: ConditionIn, uid: str = Depends(current_user)):
-    vals = {k: v for k, v in (("mood", b.mood), ("body_strength", b.body_strength), ("m_count", b.m_count)) if v is not None}
+    vals = {k: v for k, v in (("mood", b.mood), ("body_strength", b.body_strength), ("m_count", b.m_count),
+                              ("god_count", b.god_count)) if v is not None}
+    if b.story is not None:
+        vals["story"] = b.story or None  # "" clears the story
     if not vals:
         raise HTTPException(422, "Nothing to save.")
     run(sb.table("body_condition").upsert({"user_id": uid, "log_date": b.date.isoformat(), **vals}, on_conflict="user_id,log_date"))
+    return {"status": "ok"}
+
+
+# ---------- monthly targets (Aug / Sept / Oct pages: task-like rows with hours, grouped by month) ----------
+class TargetIn(BaseModel):
+    month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")  # "2026-10"
+    name: str = Field(min_length=1, max_length=200)
+    category: str = "Other"
+    priority: str = Field("med", pattern="^(high|med|low)$")
+    description: Optional[str] = None
+
+
+class TargetPatch(BaseModel):
+    done: Optional[bool] = None
+    hours: Optional[float] = Field(None, ge=0, le=999)
+
+
+@app.get("/api/targets")
+def list_targets(month: Optional[str] = Query(None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$"), uid: str = Depends(current_user)):
+    q = sb.table("monthly_targets").select("id,month,name,category,priority,description,done,hours").eq("user_id", uid)
+    if month:
+        q = q.eq("month", month)
+    rows = run(q.order("created_at"))
+    rows.sort(key=lambda t: PRIORITY_ORDER.get(t["priority"], 1))  # high, med, low (stable)
+    return rows
+
+
+@app.post("/api/targets")
+def add_target(b: TargetIn, uid: str = Depends(current_user)):
+    return run(sb.table("monthly_targets").insert({"user_id": uid, "month": b.month, "name": b.name.strip(),
+               "category": b.category, "priority": b.priority, "description": b.description}))[0]
+
+
+@app.patch("/api/targets/{tid}")
+def patch_target(tid: str, b: TargetPatch, uid: str = Depends(current_user)):
+    patch = {k: v for k, v in (("done", b.done), ("hours", b.hours)) if v is not None}
+    if not patch:
+        raise HTTPException(422, "Nothing to update.")
+    if not run(sb.table("monthly_targets").update(patch).eq("id", tid).eq("user_id", uid)):
+        raise HTTPException(404, "Target not found.")
+    return {"status": "ok"}
+
+
+@app.delete("/api/targets/{tid}")
+def delete_target(tid: str, uid: str = Depends(current_user)):
+    run(sb.table("monthly_targets").delete().eq("id", tid).eq("user_id", uid))
     return {"status": "ok"}
 
 

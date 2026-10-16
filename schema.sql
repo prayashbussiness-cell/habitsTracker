@@ -98,10 +98,27 @@ create table if not exists body_condition (
   mood int check (mood between 0 and 10),
   body_strength int check (body_strength between 0 and 10),
   m_count int not null default 0 check (m_count >= 0),   -- daily "M" counter
+  god_count int not null default 0 check (god_count >= 0), -- daily "God" counter
+  story text check (story is null or story in ('fight','messed','won','leave','frustrated')), -- overall story of the day
   updated_at timestamptz not null default now(),
   primary key (user_id, log_date)
 );
 
+
+-- Monthly Target cards (Aug / Sept / Oct): task-like rows grouped by month ("YYYY-MM")
+create table if not exists monthly_targets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  month text not null check (month ~ '^\d{4}-(0[1-9]|1[0-2])$'),
+  name text not null,
+  category text not null default 'Other',
+  priority text not null default 'med' check (priority in ('high','med','low')),
+  description text,
+  done boolean not null default false,
+  hours numeric not null default 0 check (hours >= 0),
+  created_at timestamptz not null default now()
+);
+create index if not exists monthly_targets_user_month on monthly_targets(user_id, month);
 
 -- The browser never talks to Supabase. Only the FastAPI server (service_role key) does,
 -- so lock every table down for the public anon key.
@@ -114,3 +131,4 @@ alter table goals enable row level security;
 alter table daily_statistics enable row level security;
 alter table ideas enable row level security;
 alter table body_condition enable row level security;
+alter table monthly_targets enable row level security;

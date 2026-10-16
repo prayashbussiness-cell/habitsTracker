@@ -69,3 +69,10 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - **Tasks are always sorted** high, then med, then low (Dashboard and Daily Tasks).
 - **Existing database:** run `migration_v4_hours_mood_m.sql` once in Supabase > SQL Editor *before* using this version (new installs get it from `schema.sql`).
 - If `migration_v4_hours_mood_m.sql` has not been run yet, the app still loads; saving hours, a habit mood or the M counter shows "Database needs one update: run migration_v4_hours_mood_m.sql".
+
+## v5: day story, God counter, Monthly Target
+- **Overall story of the day**: dropdown under "START YOUR DAY" on the Dashboard (Fight All Day, I messed up today, I won today, Took a Leave today, I am frustrated today). Saved per day. Change the labels in the `STORY` constant at the top of the script in `static/index.html`.
+- **God counter**: sits beside the **M** counter in the Body condition card, counted per day.
+- **Monthly Target** (new sidebar page): cards for August, September and October. Open a month to see its target rows (tick, hours, category, priority, delete, same look as Daily Tasks). The top card shows the **total hours spent that month**, hours on completed targets and how many are done. Change the months in `TMON` in `static/index.html`.
+- New API: `GET/POST /api/targets`, `PATCH/DELETE /api/targets/{id}`; `/api/condition` also accepts `story` and `god_count`.
+- **Existing database:** run `migration_v5_story_god_targets.sql` once in Supabase > SQL Editor (new installs get it from `schema.sql`). Until then the app still loads and shows a notice.
