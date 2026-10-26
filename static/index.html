@@ -147,14 +147,15 @@ render()}
 async function sync(){try{const[h,s]=await Promise.all([api('GET','/api/history?days=14'),api('GET','/api/summary')]);setHist(h);S.sum=s;S.catPerf=s.categories}catch(e){}render()}
 async function loadAll(){try{const[c,g,d,h,s]=await Promise.all([api('GET','/api/cards'),api('GET','/api/goals'),api('GET','/api/day?date='+S.date),api('GET','/api/history?days=14'),api('GET','/api/summary')]);
 S.cards=c.map(x=>({id:x.id,name:x.name,cat:x.category,target:+x.target,unit:x.unit,icon:x.icon,desc:x.description||''}));S.goals=g.map(x=>({id:x.id,name:x.name,p:x.progress}));S.days[S.date]=toDay(d);setHist(h);S.sum=s;S.catPerf=s.categories}catch(e){fail(e);S.offline=true;render();return false}S.offline=false;render();await loadExtras();return true}
+const fixUser=u=>u&&u.name?u:(CACHED&&CACHED.name?CACHED:{name:'User',phone:''});
 async function boot(){if(!TOK)return;S.booting=true;if(CACHED)S.user=CACHED;render();
-try{S.user=await api('GET','/api/me');saveUser(S.user)}
+try{S.user=fixUser(await api('GET','/api/me'));saveUser(S.user)}
 catch(e){S.booting=false;
 if(e.status==401){clearLogin();S.user=null;return render()}   // login really invalid -> login page
 // server/database/network problem: stay logged in with the saved session and retry
 if(!S.user)S.user={name:'...',phone:''};S.offline=true;render();toast('Server is waking up, retrying...',3000);return retryBoot()}
 S.booting=false;await loadAll()}
-async function retryBoot(){for(let i=0;i<6&&TOK;i++){await sleep(2500*(i+1));try{S.user=await api('GET','/api/me');saveUser(S.user);S.booting=false;await loadAll();return}catch(e){if(e.status==401){clearLogin();S.user=null;return render()}}}
+async function retryBoot(){for(let i=0;i<6&&TOK;i++){await sleep(2500*(i+1));try{S.user=fixUser(await api('GET','/api/me'));saveUser(S.user);S.booting=false;await loadAll();return}catch(e){if(e.status==401){clearLogin();S.user=null;return render()}}}
 S.offline=true;render()}
 let _last=0;const refreshNow=()=>{if(!S.user||!TOK||Date.now()-_last<15000)return;_last=Date.now();loadAll()};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshNow()});window.addEventListener('online',()=>{_last=0;refreshNow()});
@@ -268,7 +269,7 @@ document.addEventListener('keydown',e=>{if(e.key=='Enter'&&!S.user&&e.target.tag
 function render(){if(S.booting&&!S.user){$('.app').style.display='none';$('#bot').style.display='none';$('#auth').innerHTML='<div class="au"><div class="card" style="text-align:center"><div class="logo" style="margin:0 0 6px">START YOUR DAY</div><p class="mut">Loading your data...</p></div></div>';return}
 if(!S.user){$('.app').style.display='none';$('#bot').style.display='none';$('#auth').innerHTML=Auth();return}
 $('#auth').innerHTML='';$('.app').style.display='';$('#bot').style.display='';const m=$('#main');m.innerHTML=(S.offline?'<div class="card" style="margin-bottom:14px;border-color:var(--wn);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Could not reach the server. You are still logged in.</span><button class="btn g" data-a="retry">Retry now</button></div>':'')+(S.page=='dash'?Dash():S.page=='tasks'?Tasks():S.page=='ideas'?Ideas():S.page=='targets'?Targets():Add());if(S.page=='add')pv();
-$('#side').innerHTML=`<div class="logo">START<br>YOUR<br>DAY</div>`+NAV.map(n=>`<button class="nav ${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}<span>${n[1]}</span></button>`).join('')+`<div class="me"><div class="av">${S.user.name[0].toUpperCase()}</div><div style="flex:1;min-width:0"><b>${S.user.name}</b></div><button class="ib" data-a="logout" aria-label="Log out">${ic('out')}</button></div>`;
+$('#side').innerHTML=`<div class="logo">START<br>YOUR<br>DAY</div>`+NAV.map(n=>`<button class="nav ${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}<span>${n[1]}</span></button>`).join('')+`<div class="me"><div class="av">${esc(String(S.user.name||'?')[0]).toUpperCase()}</div><div style="flex:1;min-width:0"><b>${esc(S.user.name||'')}</b></div><button class="ib" data-a="logout" aria-label="Log out">${ic('out')}</button></div>`;
 $('#bot').innerHTML=NAV.map(n=>`<button class="${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}${n[1]}</button>`).join('')}
 const pv=()=>{const e=$('#pv');if(e)e.innerHTML=Preview()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,D=day(S.date);
