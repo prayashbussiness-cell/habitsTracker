@@ -105,7 +105,7 @@ class SchemaOutdated(HTTPException):
     """A new column (hours / mood / m_count) is missing: the v4 migration has not been run in Supabase yet."""
 
     def __init__(self):
-        super().__init__(500, "Database needs one update: run migration_v5_story_god_targets.sql (and migration_v4_hours_mood_m.sql if you have not yet) in Supabase > SQL Editor, then try again.")
+        super().__init__(500, "Database needs one update: run migration_v6_ego.sql (and migration_v5_story_god_targets.sql / migration_v4_hours_mood_m.sql if you have not yet) in Supabase > SQL Editor, then try again.")
 
 
 def run(query):
@@ -591,6 +591,98 @@ def patch_target(tid: str, b: TargetPatch, uid: str = Depends(current_user)):
 @app.delete("/api/targets/{tid}")
 def delete_target(tid: str, uid: str = Depends(current_user)):
     run(sb.table("monthly_targets").delete().eq("id", tid).eq("user_id", uid))
+    return {"status": "ok"}
+
+
+# ---------- Ego page (ranked cards: colour, border colour, hours, category, priority; rank 1 = top) ----------
+class EgoIn(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    category: str = "Other"
+    priority: str = Field("med", pattern="^(high|med|low)$")
+    description: Optional[str] = None
+    hours: float = Field(0, ge=0, le=999)
+    color: str = Field("#CFA8D5", pattern=r"^#[0-9a-fA-F]{6}$")
+    border: str = Field("none", pattern="^(none|red|green)$")
+    rank: Optional[int] = Field(None, ge=1, le=9999)  # 1 = top; empty = bottom
+
+
+class EgoPatch(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    category: Optional[str] = None
+    priority: Optional[str] = Field(None, pattern="^(high|med|low)$")
+    description: Optional[str] = None
+    done: Optional[bool] = None
+    hours: Optional[float] = Field(None, ge=0, le=999)
+    color: Optional[str] = Field(None, pattern=r"^#[0-9a-fA-F]{6}$")
+    border: Optional[str] = Field(None, pattern="^(none|red|green)$")
+    rank: Optional[int] = Field(None, ge=1, le=9999)
+
+
+class EgoOrder(BaseModel):
+    ids: list[str] = Field(max_length=500)
+
+
+def _ego_ids(uid: str) -> list:
+    rows = run(sb.table("ego_items").select("id").eq("user_id", uid).order("rank").order("created_at"))
+    return [r["id"] for r in rows]
+
+
+def _ego_apply(uid: str, ids: list) -> None:
+    for i, x in enumerate(ids):
+        run(sb.table("ego_items").update({"rank": i + 1}).eq("id", x).eq("user_id", uid))
+
+
+@app.get("/api/ego")
+def list_ego(uid: str = Depends(current_user)):
+    return run(sb.table("ego_items").select("id,name,category,priority,description,done,hours,color,border,rank")
+               .eq("user_id", uid).order("rank").order("created_at"))
+
+
+@app.post("/api/ego")
+def add_ego(b: EgoIn, uid: str = Depends(current_user)):
+    existing = _ego_ids(uid)
+    row = run(sb.table("ego_items").insert({"user_id": uid, "name": b.name.strip(), "category": b.category, "priority": b.priority,
+              "description": b.description, "hours": b.hours, "color": b.color, "border": b.border, "rank": len(existing) + 1}))[0]
+    if b.rank and b.rank <= len(existing):
+        existing.insert(b.rank - 1, row["id"])
+        _ego_apply(uid, existing)
+    return row
+
+
+@app.post("/api/ego/reorder")
+def reorder_ego(b: EgoOrder, uid: str = Depends(current_user)):
+    existing = _ego_ids(uid)
+    keep = set(existing)
+    ids = [x for x in dict.fromkeys(b.ids) if x in keep]
+    ids += [x for x in existing if x not in set(ids)]  # anything the browser did not know about goes last
+    _ego_apply(uid, ids)
+    return {"status": "ok"}
+
+
+@app.patch("/api/ego/{eid}")
+def patch_ego(eid: str, b: EgoPatch, uid: str = Depends(current_user)):
+    d = b.model_dump(exclude_none=True)
+    rank = d.pop("rank", None)
+    if "name" in d:
+        d["name"] = d["name"].strip()
+    if not d and rank is None:
+        raise HTTPException(422, "Nothing to update.")
+    if d and not run(sb.table("ego_items").update(d).eq("id", eid).eq("user_id", uid)):
+        raise HTTPException(404, "Card not found.")
+    if rank is not None:
+        ids = _ego_ids(uid)
+        if eid not in ids:
+            raise HTTPException(404, "Card not found.")
+        ids.remove(eid)
+        ids.insert(min(rank, len(ids) + 1) - 1, eid)
+        _ego_apply(uid, ids)
+    return {"status": "ok"}
+
+
+@app.delete("/api/ego/{eid}")
+def delete_ego(eid: str, uid: str = Depends(current_user)):
+    run(sb.table("ego_items").delete().eq("id", eid).eq("user_id", uid))
+    _ego_apply(uid, _ego_ids(uid))  # close the gap so ranks stay 1..n
     return {"status": "ok"}
 
 

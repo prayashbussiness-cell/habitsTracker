@@ -96,16 +96,31 @@ label{display:block;font-size:12px;color:var(--t2);margin:14px 0 6px;font-weight
 .cnts{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:16px}
 .cnt{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mcard{cursor:pointer;transition:border-color .15s,transform .15s}.mcard:hover{border-color:var(--ac);transform:translateY(-2px)}
+
+/* ---- Ego page ---- */
+.ego{flex-wrap:wrap;position:relative;border:2px solid transparent;touch-action:pan-y}
+.ego.done .nm{opacity:.5}
+.ego.drag{z-index:5;box-shadow:0 10px 28px #000b;transition:none;cursor:grabbing}
+.grip{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--t3);padding:8px 5px;border-radius:8px;display:grid;place-items:center;flex:none}
+.grip{color:var(--t2)}.grip svg{width:22px;height:22px;stroke-width:3.2}
+.grip:hover{color:var(--tx);background:var(--tr)}
+.rk{width:54px;min-height:34px;padding:4px 6px;text-align:center;font-weight:800;flex:none}
+input.clr{width:34px;height:34px;min-height:34px;padding:2px;border-radius:50%;cursor:pointer;flex:none}
+.clr::-webkit-color-swatch-wrapper{padding:0}.clr::-webkit-color-swatch{border:0;border-radius:50%}.clr::-moz-color-swatch{border:0;border-radius:50%}
+.bsel{display:flex;gap:6px;flex:none}
+.bdot{width:22px;height:22px;border-radius:50%;border:2px solid var(--c);background:transparent;padding:0}
+.bdot.on{background:var(--c);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--c)}
+.ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.span2,.span4{grid-column:auto}.cnts{grid-template-columns:1fr}.hrs{width:58px}.chips{grid-template-columns:repeat(6,1fr)}.chip{min-height:44px}}
 </style></head><body>
 <div id="auth"></div><div class="app"><nav class="side" id="side"></nav><main id="main"></main></div>
 <nav class="bot" id="bot"></nav><div id="toast"></div><div id="modal"></div>
 <script>
-const P={home:"M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z",tasks:"M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",plus:"M12 5v14M5 12h14",edit:"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",trash:"M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6",note:"M4 4h16v12H8l-4 4z",flame:"M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 3-6 1 1 1 2 2 2 0-3-1-5 1-8z",heart:"M20 8c0 6-8 12-8 12S4 14 4 8a4 4 0 0 1 8-1 4 4 0 0 1 8 1z",bolt:"M13 2L4 14h7l-1 8 9-12h-7z",book:"M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2M8 7h8",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",check:"M5 12l5 5L20 7",left:"M15 18l-6-6 6-6",right:"M9 6l6 6-6 6",target:"M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",bulb:"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"};
+const P={home:"M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z",tasks:"M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",plus:"M12 5v14M5 12h14",edit:"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",trash:"M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6",note:"M4 4h16v12H8l-4 4z",flame:"M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 3-6 1 1 1 2 2 2 0-3-1-5 1-8z",heart:"M20 8c0 6-8 12-8 12S4 14 4 8a4 4 0 0 1 8-1 4 4 0 0 1 8 1z",bolt:"M13 2L4 14h7l-1 8 9-12h-7z",book:"M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2M8 7h8",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",check:"M5 12l5 5L20 7",left:"M15 18l-6-6 6-6",right:"M9 6l6 6-6 6",target:"M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",grip:"M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01",crown:"M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z",bulb:"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"};
 const ic=n=>`<svg class="i" viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`;
 const ICONS=['book','heart','bolt','flame','tasks'],CATS=['Work','Health & Fitness','Learning','Personal','Finance','Other'],UNITS=['hour','min','pages','reps','steps'];
 const TODAY=new Date().toLocaleDateString('sv');
-let S={booting:false,offline:false,user:null,auth:'login',err:'',tmp:null,page:'dash',date:TODAY,open:{},edit:null,form:null,cards:[],goals:[],catPerf:[],sum:null,hist:{},days:{},ideas:[],cond:{},targets:[],tm:null};
+let S={booting:false,offline:false,user:null,auth:'login',err:'',tmp:null,page:'dash',date:TODAY,open:{},edit:null,form:null,cards:[],goals:[],catPerf:[],sum:null,hist:{},days:{},ideas:[],cond:{},targets:[],tm:null,ego:[]};
 // Overall story of the day (dropdown under "START YOUR DAY"). Keys are stored in the database; edit the labels here.
 const STORY=[['fight','Fight All Day','var(--wn)'],['messed','I messed up today','var(--dn)'],['won','I won today','var(--ok)'],['leave','Took a Leave today','var(--ac)'],['frustrated','I am frustrated today','var(--dn)']];
 const cm=x=>({mood:x.mood,body:x.body_strength,m:x.m_count||0,g:x.god_count||0,story:x.story||''});
@@ -137,10 +152,12 @@ async function loadDay(){try{S.days[S.date]=toDay(await api('GET','/api/day?date
 try{const c=await api('GET','/api/condition?date='+S.date);const x=c[0];S.cond[S.date]=x?cm(x):{};render()}catch(e){}}
 async function loadExtras(){
 // Ideas + body condition load separately so the rest of the app still works if the new tables are not created yet.
-const[i,c,t]=await Promise.all([api('GET','/api/ideas').catch(()=>null),api('GET','/api/condition?days=90').catch(()=>null),api('GET','/api/targets').catch(()=>null)]);
+const[i,c,t,eg]=await Promise.all([api('GET','/api/ideas').catch(()=>null),api('GET','/api/condition?days=90').catch(()=>null),api('GET','/api/targets').catch(()=>null),api('GET','/api/ego').catch(()=>null)]);
 if(i)S.ideas=i.map(x=>({id:x.id,name:x.name,details:x.details||'',time:x.time_required||'',adv:x.advantage||'',skip:!!x.skipped}));
 if(c){S.cond={};c.forEach(x=>S.cond[x.log_date]=cm(x))}
 if(t)S.targets=t.map(x=>({id:x.id,month:x.month,n:x.name,cat:x.category,pri:x.priority,done:!!x.done,hours:+x.hours||0}));
+if(eg)S.ego=eg.map(x=>({id:x.id,n:x.name,cat:x.category,pri:x.priority,done:!!x.done,hours:+x.hours||0,color:x.color||'#CFA8D5',border:x.border||'none'}));
+if(!eg&&t&&S.user&&!window._ew){window._ew=1;toast('The Ego page needs one update: run migration_v6_ego.sql in Supabase.',7000)}
 if(!i&&!c&&S.user)toast('Ideas / body condition not available yet. Run migration_ideas_and_condition.sql in Supabase.',6000);
 else if(!t&&S.user&&!window._tw){window._tw=1;toast('Monthly targets, day story and God counter need one update: run migration_v5_story_god_targets.sql in Supabase.',7000)}
 render()}
@@ -176,7 +193,7 @@ const bar=(p,c='')=>`<div class="bar ${c}"><i style="width:${p}%"></i></div>`;
 let _tt;const toast=(m,ms=1800)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),ms)};
 const fail=e=>toast((e&&e.message)||'Something went wrong',4000);
 const $=s=>document.querySelector(s);
-const NAV=[['dash','Dashboard','home'],['tasks','Daily Tasks','tasks'],['add','Add Card','plus'],['ideas','Ideas','bulb'],['targets','Monthly Target','target']];
+const NAV=[['dash','Dashboard','home'],['tasks','Daily Tasks','tasks'],['add','Add Card','plus'],['ideas','Ideas','bulb'],['targets','Monthly Target','target'],['ego','Ego','crown']];
 
 function Header(){const u=S.user.name;return `<div class="row sp" style="align-items:flex-start"><h1>START<br>YOUR DAY</h1><button class="btn g mlo" data-a="logout">${ic('out')} Log out</button></div>${S.page=='dash'?StoryPick():''}<p class="sub">${S.page=='dash'?greet()+', '+u:u} · ${fd(S.date,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}<br><span class="mut">Plan it. Track it. Complete it.</span></p>`}
 function StoryPick(){const cur=(S.cond[S.date]||{}).story||'',o=STORY.find(x=>x[0]==cur);
@@ -258,6 +275,33 @@ return `<div class="row sp" style="align-items:flex-start"><h1>${mname(m).toUppe
 <div class="card" style="margin-bottom:16px"><div class="row sp" style="flex-wrap:wrap;gap:16px"><div><div class="mut">Total hours spent this month</div><div class="big">${fh(s.hrs)}</div><div class="mut">${fh(s.dh)} on completed targets · ${s.done} / ${s.n} done · ${s.p}%</div></div><button class="btn" data-a="mtg">${ic('plus')} Add target</button></div>${bar(s.p,s.n&&s.p>=100?'ok':'')}</div>
 ${L.map(MTask).join('')||'<div class="card t2">No targets for this month yet. Press Add target to create the first one.</div>'}`}
 function targetModal(){return `<div class="mod" data-a="close"><div class="card"><h2>Add ${mname(S.tm)} target</h2><label>Target name</label><input id="tg_n" maxlength="200" autofocus><label>Category</label><select id="tg_c">${CATS.map(c=>`<option>${c}</option>`).join('')}</select><label>Priority</label><select id="tg_p"><option>high</option><option selected>med</option><option>low</option></select><label>Description (optional)</label><textarea id="tg_d" rows="2"></textarea><div class="row" style="margin-top:18px"><button class="btn g" data-a="close" style="flex:1">Cancel</button><button class="btn" data-a="cmt" style="flex:1">Add target</button></div></div></div>`}
+const EB={none:['No border','#716D71'],red:['Red border','#F0524F'],green:['Green border','#3DDC97']};
+function EgoRow(t,i){const bc=EB[t.border]||EB.none;
+return `<div class="task ego ${t.done?'done':''}" data-id="${t.id}" style="${t.border=='none'?'':'border-color:'+bc[1]}"><button class="grip" aria-label="Drag to reorder ${esc(t.n)}" title="Drag to reorder">${ic('grip')}</button><input class="num rk" type="number" min="1" max="999" value="${i+1}" data-a="egr" data-v="${t.id}" aria-label="Rank of ${esc(t.n)} (1 = top)" title="Rank (1 = top)"><button class="ck ${t.done?'on':''}" data-a="egt" data-v="${t.id}" aria-label="Toggle ${esc(t.n)}">${ic('check')}</button><div style="flex:1;min-width:130px"><div class="nm wrap" style="color:${t.color};font-weight:700">${esc(t.n)}</div><div class="mut">${t.done?'Completed':'Pending'}</div></div>
+<div class="ctl" style="margin-left:auto"><span class="row" style="gap:4px;flex:none" title="Hours spent"><input class="num hrs" type="number" min="0" max="999" step="0.25" placeholder="0" value="${t.hours||''}" data-a="egh" data-v="${t.id}" aria-label="Hours spent on ${esc(t.n)}"><span class="mut">h</span></span><span class="tag">${esc(t.cat)}</span><span class="tag ${t.pri=='high'?'hh':t.pri=='med'?'hi':'lo'}">${t.pri}</span><input class="clr" type="color" value="${t.color}" data-a="egc" data-v="${t.id}" aria-label="Colour of ${esc(t.n)}" title="Card colour"><span class="bsel" role="group" aria-label="Border colour">${['none','red','green'].map(k=>`<button class="bdot ${t.border==k?'on':''}" style="--c:${EB[k][1]}" data-a="egb" data-v="${t.id}:${k}" aria-label="${EB[k][0]}" title="${EB[k][0]}"></button>`).join('')}</span><button class="ib" data-a="ege" data-v="${t.id}" aria-label="Edit card">${ic('edit')}</button><button class="ib" data-a="egd" data-v="${t.id}" aria-label="Delete card">${ic('trash')}</button></div></div>`}
+function Ego(){const L=S.ego,hr=L.reduce((a,t)=>a+(+t.hours||0),0),dn=L.filter(t=>t.done).length,p=L.length?Math.round(dn/L.length*100):0;
+return `<div class="row sp" style="align-items:flex-start"><h1>YOUR<br>EGO</h1><button class="btn g mlo" data-a="logout">${ic('out')} Log out</button></div><p class="sub">Rank what matters. Rank 1 sits on top; drag a card by its handle to move it.<br><span class="mut">Plan it. Track it. Complete it.</span></p>
+<div class="card" style="margin-bottom:16px"><div class="row sp" style="flex-wrap:wrap;gap:16px"><div><div class="mut">Total hours</div><div class="big">${fh(hr)}</div><div class="mut">${dn} / ${L.length} done · ${p}%</div></div><button class="btn" data-a="mego">${ic('plus')} Add card</button></div>${bar(p,L.length&&p>=100?'ok':'')}</div>
+<div id="egolist">${L.map(EgoRow).join('')||'<div class="card t2">No Ego cards yet. Press Add card to create the first one.</div>'}</div>`}
+function egoModal(t){t=t||{};const n=S.ego.length,rk=t.id?S.ego.findIndex(x=>x.id==t.id)+1:'';
+return `<div class="mod" data-a="close"><div class="card"><h2>${t.id?'Edit card':'Add card'}</h2><label>Name</label><input id="eg_n" maxlength="200" value="${esc(t.n)}" autofocus><div class="row"><div style="flex:1"><label>Category</label><select id="eg_c">${CATS.map(c=>`<option ${c==(t.cat||'Other')?'selected':''}>${esc(c)}</option>`).join('')}</select></div><div style="flex:1"><label>Priority</label><select id="eg_p">${['high','med','low'].map(c=>`<option ${c==(t.pri||'med')?'selected':''}>${c}</option>`).join('')}</select></div></div>
+<div class="row"><div style="flex:1"><label>Hours</label><input id="eg_h" type="number" min="0" max="999" step="0.25" value="${t.hours||''}" placeholder="0"></div><div style="flex:1"><label>Rank (1 = top)</label><input id="eg_r" type="number" min="1" max="${t.id?n:n+1}" value="${rk}" placeholder="${t.id?'':'Last'}"></div></div>
+<div class="row"><div style="flex:1"><label>Colour</label><input id="eg_col" type="color" value="${t.color||'#CFA8D5'}" style="padding:3px;cursor:pointer"></div><div style="flex:1"><label>Border</label><select id="eg_b">${Object.keys(EB).map(k=>`<option value="${k}" ${k==(t.border||'none')?'selected':''}>${EB[k][0].replace(' border','')}</option>`).join('')}</select></div></div>
+<div class="row" style="margin-top:18px"><button class="btn g" data-a="close" style="flex:1">Cancel</button><button class="btn" data-a="cego" data-v="${t.id||''}" style="flex:1">${t.id?'Save changes':'Add card'}</button></div></div></div>`}
+const egoPatch=(id,b,msg)=>api('PATCH','/api/ego/'+id,b).then(()=>msg&&toast(msg)).catch(e=>{fail(e);loadExtras()});
+const egoSave=ids=>{const o=Object.fromEntries(S.ego.map(t=>[t.id,t]));S.ego=ids.map(i=>o[i]).filter(Boolean);return api('POST','/api/ego/reorder',{ids}).catch(e=>{fail(e);loadExtras()})};
+// Drag and drop (mouse + touch): the grabbed card follows the pointer, the others step aside. Order is saved on release.
+document.addEventListener('pointerdown',e=>{const g=e.target.closest('.grip');if(!g||(e.button&&e.button!==0))return;const row=g.closest('.ego'),list=row.parentElement;e.preventDefault();
+const off=e.clientY-row.getBoundingClientRect().top,h=row.offsetHeight;row.classList.add('drag');try{g.setPointerCapture(e.pointerId)}catch(x){}
+const place=y=>{row.style.transform='none';const mid=r=>r.top+r.height/2,c=y-off+h/2;
+let p=row.previousElementSibling,n=row.nextElementSibling;
+while(p&&p.classList.contains('ego')&&c<mid(p.getBoundingClientRect())){list.insertBefore(p,row.nextSibling);p=row.previousElementSibling}
+while(n&&n.classList.contains('ego')&&c>mid(n.getBoundingClientRect())){list.insertBefore(n,row);n=row.nextElementSibling}
+row.style.transform='translateY('+(y-off-row.getBoundingClientRect().top)+'px)'};
+const mv=ev=>{place(ev.clientY);if(ev.clientY<60)scrollBy(0,-12);else if(ev.clientY>innerHeight-60)scrollBy(0,12)};
+const end=()=>{g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',end);g.removeEventListener('pointercancel',end);row.style.transform='';row.classList.remove('drag');
+const ids=[...list.querySelectorAll('.ego')].map(x=>x.dataset.id);if(ids.join()!==S.ego.map(t=>t.id).join()){egoSave(ids).then(()=>toast('Order saved'))}render()};
+g.addEventListener('pointermove',mv);g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end)});
 function Auth(){const t=S.tmp||{n:'',p:''},su=S.auth=='signup';
 return `<div class="au"><div class="card"><div class="logo" style="margin:0 0 6px">START YOUR DAY</div><p class="mut" style="margin-bottom:16px">Plan it. Track it. Complete it.</p><div class="row"><button class="btn ${su?'g':''}" style="flex:1" data-a="au" data-v="login">Log in</button><button class="btn ${su?'':'g'}" style="flex:1" data-a="au" data-v="signup">Sign up</button></div>
 <label>Name</label><input id="an" value="${t.n}" autocomplete="name" placeholder="Prayash"><label>Phone number</label><input id="ap" type="tel" value="${t.p}" autocomplete="tel" placeholder="7539863102" inputmode="numeric" maxlength="14">
@@ -268,14 +312,14 @@ try{const r=await api('POST','/api/auth/'+a,{name:n,phone:$('#ap').value});TOK=r
 document.addEventListener('keydown',e=>{if(e.key=='Enter'&&!S.user&&e.target.tagName=='INPUT'){doAuth(S.auth);render()}});
 function render(){if(S.booting&&!S.user){$('.app').style.display='none';$('#bot').style.display='none';$('#auth').innerHTML='<div class="au"><div class="card" style="text-align:center"><div class="logo" style="margin:0 0 6px">START YOUR DAY</div><p class="mut">Loading your data...</p></div></div>';return}
 if(!S.user){$('.app').style.display='none';$('#bot').style.display='none';$('#auth').innerHTML=Auth();return}
-$('#auth').innerHTML='';$('.app').style.display='';$('#bot').style.display='';const m=$('#main');m.innerHTML=(S.offline?'<div class="card" style="margin-bottom:14px;border-color:var(--wn);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Could not reach the server. You are still logged in.</span><button class="btn g" data-a="retry">Retry now</button></div>':'')+(S.page=='dash'?Dash():S.page=='tasks'?Tasks():S.page=='ideas'?Ideas():S.page=='targets'?Targets():Add());if(S.page=='add')pv();
+$('#auth').innerHTML='';$('.app').style.display='';$('#bot').style.display='';const m=$('#main');m.innerHTML=(S.offline?'<div class="card" style="margin-bottom:14px;border-color:var(--wn);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Could not reach the server. You are still logged in.</span><button class="btn g" data-a="retry">Retry now</button></div>':'')+(S.page=='dash'?Dash():S.page=='tasks'?Tasks():S.page=='ideas'?Ideas():S.page=='targets'?Targets():S.page=='ego'?Ego():Add());if(S.page=='add')pv();
 $('#side').innerHTML=`<div class="logo">START<br>YOUR<br>DAY</div>`+NAV.map(n=>`<button class="nav ${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}<span>${n[1]}</span></button>`).join('')+`<div class="me"><div class="av">${esc(String(S.user.name||'?')[0]).toUpperCase()}</div><div style="flex:1;min-width:0"><b>${esc(S.user.name||'')}</b></div><button class="ib" data-a="logout" aria-label="Log out">${ic('out')}</button></div>`;
 $('#bot').innerHTML=NAV.map(n=>`<button class="${S.page==n[0]?'on':''}" data-a="go" data-v="${n[0]}">${ic(n[2])}${n[1]}</button>`).join('')}
 const pv=()=>{const e=$('#pv');if(e)e.innerHTML=Preview()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,D=day(S.date);
 if(b.tagName=='INPUT'||b.tagName=='SELECT'||b.tagName=='TEXTAREA')return;
 if(a=='au'){S.auth=v;S.err=''}else if(a=='login'||a=='signup')doAuth(a);
-else if(a=='logout'){S.user=null;S.auth='login';S.offline=false;clearLogin();S.days={};S.cards=[];S.goals=[];S.sum=null;S.ideas=[];S.cond={};S.targets=[];S.tm=null}
+else if(a=='logout'){S.user=null;S.auth='login';S.offline=false;clearLogin();S.days={};S.cards=[];S.goals=[];S.sum=null;S.ideas=[];S.cond={};S.targets=[];S.tm=null;S.ego=[]}
 else if(a=='retry'){_last=0;loadAll()}
 else if(a=='sk'){const h=D.h[v]=D.h[v]||{a:0,note:''};h.skip=!h.skip;putProg(v);toast(h.skip?'Habit skipped for today':'Skip removed')}
 else if(a=='ag'){const nm=prompt('Goal name');if(nm&&nm.trim())api('POST','/api/goals',{name:nm.trim(),progress:0}).then(loadAll).catch(fail)}
@@ -301,6 +345,13 @@ else if(a=='cmt'){const n=$('#tg_n').value.trim();if(!n)return toast('Enter a ta
 api('POST','/api/targets',{month:S.tm,name:n,category:$('#tg_c').value,priority:$('#tg_p').value,description:$('#tg_d').value}).then(async()=>{$('#modal').innerHTML='';toast('Target added');await loadExtras()}).catch(e=>{b.disabled=false;b.textContent='Add target';fail(e)});return}
 else if(a=='mtt'){const t=S.targets.find(t=>t.id==v);t.done=!t.done;api('PATCH','/api/targets/'+v,{done:t.done}).catch(e=>{fail(e);loadExtras()})}
 else if(a=='mdt'){S.targets=S.targets.filter(t=>t.id!=v);api('DELETE','/api/targets/'+v).catch(e=>{fail(e);loadExtras()});toast('Target deleted')}
+else if(a=='mego'){$('#modal').innerHTML=egoModal();return}
+else if(a=='ege'){$('#modal').innerHTML=egoModal(S.ego.find(t=>t.id==v));return}
+else if(a=='cego'){const n=$('#eg_n').value.trim();if(!n)return toast('Enter a name');const r=parseInt($('#eg_r').value,10)||null,body={name:n,category:$('#eg_c').value,priority:$('#eg_p').value,hours:Math.min(999,Math.max(0,+$('#eg_h').value||0)),color:$('#eg_col').value,border:$('#eg_b').value};if(r)body.rank=r;
+b.disabled=true;b.textContent='Saving...';api(v?'PATCH':'POST','/api/ego'+(v?'/'+v:''),body).then(async()=>{$('#modal').innerHTML='';toast(v?'Card updated':'Card added');await loadExtras()}).catch(e=>{b.disabled=false;b.textContent=v?'Save changes':'Add card';fail(e)});return}
+else if(a=='egt'){const t=S.ego.find(t=>t.id==v);t.done=!t.done;egoPatch(v,{done:t.done})}
+else if(a=='egb'){const[id,k]=v.split(':'),t=S.ego.find(t=>t.id==id);t.border=k;egoPatch(id,{border:k})}
+else if(a=='egd'){S.ego=S.ego.filter(t=>t.id!=v);api('DELETE','/api/ego/'+v).catch(e=>{fail(e);loadExtras()});toast('Card deleted')}
 else if(a=='mi'){$('#modal').innerHTML=ideaModal();return}
 else if(a=='ei'){$('#modal').innerHTML=ideaModal(S.ideas.find(i=>i.id==v));return}
 else if(a=='ci'){const n=$('#im_n').value.trim();if(!n)return toast('Enter an idea name');b.disabled=true;b.textContent='Saving...';
@@ -319,6 +370,9 @@ else if(a=='act'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].a=Math.max
 else if(a=='th'){const tk=day(S.date).tasks.find(x=>x.id==v);if(tk){tk.hours=Math.min(99,Math.max(0,+t.value||0));api('PATCH','/api/tasks/'+v,{hours:tk.hours}).then(sync).catch(e=>{fail(e);loadDay()});render()}}
 else if(a=='story'){const c=S.cond[S.date]=S.cond[S.date]||{};c.story=t.value;api('PUT','/api/condition',{date:S.date,story:t.value}).then(()=>toast('Day story saved')).catch(e=>{fail(e);loadDay()});render()}
 else if(a=='mth'){const tk=S.targets.find(x=>x.id==v);if(tk){tk.hours=Math.min(999,Math.max(0,+t.value||0));api('PATCH','/api/targets/'+v,{hours:tk.hours}).catch(e=>{fail(e);loadExtras()});render()}}
+else if(a=='egh'){const t=S.ego.find(x=>x.id==v);if(t){t.hours=Math.min(999,Math.max(0,+e.target.value||0));egoPatch(v,{hours:t.hours});render()}}
+else if(a=='egc'){const t=S.ego.find(x=>x.id==v);if(t){t.color=e.target.value;egoPatch(v,{color:t.color});render()}}
+else if(a=='egr'){const ids=S.ego.map(x=>x.id).filter(x=>x!=v),n=Math.min(S.ego.length,Math.max(1,parseInt(e.target.value,10)||1));ids.splice(n-1,0,v);egoSave(ids).then(()=>toast('Order saved'));render()}
 else if(a=='hm'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].mood=t.value===''?null:+t.value;putProg(v);render()}
 else if(a=='dnote'){day(S.date).notes=t.value;api('PUT','/api/notes',{date:S.date,note:t.value}).then(()=>toast('Note saved')).catch(fail)}
 else if(a=='note'){const h=day(S.date).h;h[v]=h[v]||{a:0,note:''};h[v].note=t.value;putProg(v);toast('Note saved')}});

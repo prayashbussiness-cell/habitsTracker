@@ -76,3 +76,12 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - **Monthly Target** (new sidebar page): cards for August, September and October. Open a month to see its target rows (tick, hours, category, priority, delete, same look as Daily Tasks). The top card shows the **total hours spent that month**, hours on completed targets and how many are done. Change the months in `TMON` in `static/index.html`.
 - New API: `GET/POST /api/targets`, `PATCH/DELETE /api/targets/{id}`; `/api/condition` also accepts `story` and `god_count`.
 - **Existing database:** run `migration_v5_story_god_targets.sql` once in Supabase > SQL Editor (new installs get it from `schema.sql`). Until then the app still loads and shows a notice.
+
+## v6: Ego page
+- **Ego** (sidebar, below Monthly Target): ranked cards with the same fields as Daily Tasks: name, hours, category and priority, plus tick and delete.
+- **Rank**: type a number in the box on the left (1 = top) and the card jumps to that place. You can also set the rank when adding or editing a card.
+- **Drag and drop**: hold the dotted handle on the left of a card and drag it up or down (works with mouse and touch). Ranks renumber automatically and are saved.
+- **Colour**: tap the round colour swatch on a card to pick any colour; it colours the card name.
+- **Border**: the three small circles pick the box border: grey = none, red, or green.
+- New API: `GET/POST /api/ego`, `PATCH/DELETE /api/ego/{id}`, `POST /api/ego/reorder`.
+- **Existing database:** run `migration_v6_ego.sql` once in Supabase > SQL Editor (new installs get it from `schema.sql`). Until then the app still loads and shows a notice.

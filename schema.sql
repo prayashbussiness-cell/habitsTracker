@@ -120,6 +120,23 @@ create table if not exists monthly_targets (
 );
 create index if not exists monthly_targets_user_month on monthly_targets(user_id, month);
 
+-- Ego page (v6): ranked cards with colour, border colour, hours, category and priority
+create table if not exists ego_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  category text not null default 'Other',
+  priority text not null default 'med' check (priority in ('high','med','low')),
+  description text,
+  done boolean not null default false,
+  hours numeric not null default 0 check (hours >= 0),
+  color text not null default '#CFA8D5' check (color ~ '^#[0-9a-fA-F]{6}$'),
+  border text not null default 'none' check (border in ('none','red','green')),
+  rank int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists ego_items_user_rank on ego_items(user_id, rank);
+
 -- The browser never talks to Supabase. Only the FastAPI server (service_role key) does,
 -- so lock every table down for the public anon key.
 alter table users enable row level security;
@@ -132,3 +149,4 @@ alter table daily_statistics enable row level security;
 alter table ideas enable row level security;
 alter table body_condition enable row level security;
 alter table monthly_targets enable row level security;
+alter table ego_items enable row level security;
