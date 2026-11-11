@@ -31,6 +31,7 @@ create table if not exists daily_tasks (
   description text,
   done boolean not null default false,
   hours numeric not null default 0 check (hours >= 0),   -- time spent on the task
+  carried_from date,                                      -- v7: day an unfinished task was rolled over from
   created_at timestamptz not null default now()
 );
 create index if not exists daily_tasks_user_date on daily_tasks(user_id, task_date);

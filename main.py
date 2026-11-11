@@ -3,7 +3,7 @@
 Run:  pip install -r requirements.txt && uvicorn main:app --reload   ->  http://127.0.0.1:8000
 """
 import calendar, hashlib, hmac, logging, os, re, threading, time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -187,6 +187,53 @@ def recompute(uid: str, d) -> None:
         log.error("recompute failed for %s: %s", d, exc)
 
 
+# ---------- IST time + automatic task roll-over ----------
+# All "today" logic uses Indian Standard Time (UTC+5:30, no daylight saving), NOT the server clock
+# (Render runs in UTC, which would flip the date at 5:30 AM IST instead of midnight).
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
+ROLLOVER_DAYS = int(os.getenv("ROLLOVER_DAYS", "30"))  # how far back unfinished tasks are pulled forward
+
+
+def today_ist() -> date:
+    return datetime.now(IST).date()
+
+
+_rolled: dict = {}  # user id -> IST date on which roll-over last ran (so the DB is checked once per day)
+_roll_lock = threading.Lock()
+
+
+def rollover(uid: str) -> int:
+    """Move every unfinished task from earlier days to today (IST). Ticked tasks stay on their own day.
+    Runs once per user per IST day, on the first request of the day. Best effort: never breaks a page load."""
+    today = today_ist()
+    if _rolled.get(uid) == today:
+        return 0
+    with _roll_lock:
+        if _rolled.get(uid) == today:
+            return 0
+        try:
+            iso, since = today.isoformat(), (today - timedelta(days=ROLLOVER_DAYS)).isoformat()
+            old = run(sb.table("daily_tasks").select("id,task_date").eq("user_id", uid).eq("done", False)
+                      .lt("task_date", iso).gte("task_date", since))
+            moved = 0
+            for t in old:
+                patch = {"task_date": iso, "carried_from": t["task_date"]}
+                try:
+                    run(sb.table("daily_tasks").update(patch).eq("id", t["id"]).eq("done", False))
+                except SchemaOutdated:  # v7 migration not run yet: still move the task, just without the badge
+                    run(sb.table("daily_tasks").update({"task_date": iso}).eq("id", t["id"]).eq("done", False))
+                moved += 1
+            if moved:
+                for d in {t["task_date"] for t in old} | {iso}:
+                    recompute(uid, d)
+                log.info("rolled %d unfinished task(s) to %s for %s", moved, iso, uid)
+            _rolled[uid] = today
+            return moved
+        except Exception as exc:  # noqa: BLE001
+            log.error("rollover failed for %s: %s", uid, exc)
+            return 0
+
+
 # ---------- schemas ----------
 class AuthIn(BaseModel):
     name: str = Field(min_length=2, max_length=60)
@@ -275,11 +322,17 @@ def me(uid: str = Depends(current_user)):
 # ---------- day view ----------
 @app.get("/api/day")
 def get_day(d: Optional[date] = Query(None, alias="date"), uid: str = Depends(current_user)):
-    iso = (d or date.today()).isoformat()
-    try:
-        tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done,hours").eq("user_id", uid).eq("task_date", iso).order("created_at"))
-    except SchemaOutdated:  # migration not run yet: keep the app working without hours
-        tasks = run(sb.table("daily_tasks").select("id,name,category,priority,done").eq("user_id", uid).eq("task_date", iso).order("created_at"))
+    rollover(uid)  # pull yesterday's unfinished tasks into today before anything is read
+    iso = (d or today_ist()).isoformat()
+    tasks = None
+    for cols in ("id,name,category,priority,done,hours,carried_from", "id,name,category,priority,done,hours", "id,name,category,priority,done"):
+        try:  # newest columns first; fall back if a migration has not been run yet
+            tasks = run(sb.table("daily_tasks").select(cols).eq("user_id", uid).eq("task_date", iso).order("created_at"))
+            break
+        except SchemaOutdated:
+            continue
+    if tasks is None:
+        raise SchemaOutdated()
     tasks.sort(key=lambda t: PRIORITY_ORDER.get(t["priority"], 1))  # high, then med, then low (stable: keeps creation order inside a priority)
     try:
         prog = run(sb.table("daily_habit_progress").select("card_id,actual,note,skipped,mood").eq("user_id", uid).eq("progress_date", iso))
@@ -291,7 +344,8 @@ def get_day(d: Optional[date] = Query(None, alias="date"), uid: str = Depends(cu
 
 @app.get("/api/history")
 def get_history(days: int = Query(14, ge=1, le=60), uid: str = Depends(current_user)):
-    return history(uid, date.today() - timedelta(days=days - 1), date.today())
+    rollover(uid)
+    return history(uid, today_ist() - timedelta(days=days - 1), today_ist())
 
 
 # ---------- tasks ----------
@@ -337,8 +391,8 @@ def list_cards(uid: str = Depends(current_user)):
 
 @app.post("/api/cards")
 def add_card(b: CardIn, uid: str = Depends(current_user)):
-    row = run(sb.table("habit_cards").insert({"user_id": uid, **b.model_dump(), "starts_on": date.today().isoformat()}))[0]
-    recompute(uid, date.today())
+    row = run(sb.table("habit_cards").insert({"user_id": uid, **b.model_dump(), "starts_on": today_ist().isoformat()}))[0]
+    recompute(uid, today_ist())
     return row
 
 
@@ -347,14 +401,14 @@ def edit_card(cid: str, b: CardIn, uid: str = Depends(current_user)):
     rows = run(sb.table("habit_cards").update(b.model_dump()).eq("id", cid).eq("user_id", uid))
     if not rows:
         raise HTTPException(404, "Card not found.")
-    recompute(uid, date.today())
+    recompute(uid, today_ist())
     return rows[0]
 
 
 @app.delete("/api/cards/{cid}")
 def delete_card(cid: str, uid: str = Depends(current_user)):
     run(sb.table("habit_cards").delete().eq("id", cid).eq("user_id", uid))
-    recompute(uid, date.today())
+    recompute(uid, today_ist())
     return {"status": "ok"}
 
 
@@ -409,7 +463,7 @@ def delete_goal(gid: str, uid: str = Depends(current_user)):
 # ---------- monthly / yearly / streak / categories ----------
 @app.get("/api/summary")
 def summary(uid: str = Depends(current_user)):
-    today = date.today()
+    today = today_ist()
     rows = run(sb.table("daily_statistics").select("*").eq("user_id", uid).gte("stat_date", date(today.year, 1, 1).isoformat()).order("stat_date"))
     act = [r for r in rows if r["tasks_total"] or r["habits_total"]]
     avg = lambda xs: round(sum(xs) / len(xs)) if xs else 0  # noqa: E731
@@ -526,7 +580,7 @@ def get_condition(d: Optional[date] = Query(None, alias="date"), days: int = Que
                   uid: str = Depends(current_user)):
     def build(cols):
         q = sb.table("body_condition").select(cols).eq("user_id", uid)
-        q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (date.today() - timedelta(days=days - 1)).isoformat())
+        q = q.eq("log_date", d.isoformat()) if d else q.gte("log_date", (today_ist() - timedelta(days=days - 1)).isoformat())
         return q.order("log_date")
     for cols in ("log_date,mood,body_strength,m_count,god_count,story", "log_date,mood,body_strength,m_count"):
         try:

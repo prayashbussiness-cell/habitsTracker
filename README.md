@@ -85,3 +85,11 @@ Open http://127.0.0.1:8000, choose **Sign up** (name + 10-digit phone), then use
 - **Border**: the three small circles pick the box border: grey = none, red, or green.
 - New API: `GET/POST /api/ego`, `PATCH/DELETE /api/ego/{id}`, `POST /api/ego/reorder`.
 - **Existing database:** run `migration_v6_ego.sql` once in Supabase > SQL Editor (new installs get it from `schema.sql`). Until then the app still loads and shows a notice.
+
+## v7: unfinished tasks roll over to the next day (IST)
+- Any task that is **not ticked** on an earlier day is moved to today automatically, the first time you open the app on a new day. Ticked tasks stay on the day they were completed.
+- A moved task shows **"Pending · carried over from Nov 11"** so you can tell it is old.
+- If you were away for several days, everything unfinished from the last 30 days is pulled to today (change with the `ROLLOVER_DAYS` env var).
+- **Time zone is IST (UTC+5:30)** for "today", the date rollover, the greeting, and the habit start date, no matter where the server runs. If the page is left open past midnight IST it refreshes itself.
+- Because tasks are *moved*, the earlier day's task count no longer includes them (e.g. Nov 11 shows 0/0 instead of 0/2).
+- **Existing database:** run `migration_v7_carry_over.sql` once in Supabase > SQL Editor (adds the `carried_from` column). Without it, roll-over still works, only the "carried over" label is missing.
